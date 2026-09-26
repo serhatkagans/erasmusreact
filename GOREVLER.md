@@ -61,8 +61,8 @@ kullanıcılar, çıktılar, profil, ana sayfa; İngilizce ve yeşil tema.
 Veritabanı (`data/`) özgün projeden kopyalandı: 4 hesap parola özetleri
 dahil birebir aynı.
 
-Denenmeyenler: yazdırma önizlemesi, dosya yükleme (tarayıcıdan dosya
-seçilemedi).
+~~Denenmeyenler: yazdırma önizlemesi, dosya yükleme~~ — 26 Eylül 2026'da
+denendi (aşağıya bakın).
 
 ## Durum (26 Eylül 2026)
 
@@ -72,6 +72,17 @@ seçilemedi).
   takvimin gün ızgarası telefonda okunmuyor (bkz. DURUM.md).
 - Dört dil açıldı (it, ro, pt, da); profil kartına unvan, diller, LinkedIn,
   WhatsApp/ara/e-posta, rehbere kaydet ve karekod eklendi. `npm test` 102/102.
+- **Dosya yükleme denendi** (gerçek veri kopyasıyla geçici sunucuda, 3031):
+  sekiz giriş noktasının hepsi çalışıyor — profil fotoğrafı; klasöre çoklu
+  yükleme (PDF + DOCX), klasörde yeni sürüm (v2), "Dosya yükle" kutusuyla
+  klasör seçerek yükleme; `.exe` "Bu dosya türü kabul edilmiyor." ile
+  reddedildi; takvimde faaliyet dosyası (Gündem) ve iki fotoğraf; çıktıya
+  dilli sürüm (durum kendiliğinden "Hazırlanıyor"); form kapak görseli ve
+  form doldururken dosya sorusu. Her dosya indirilip boyutu karşılaştırıldı.
+- **Yazdırma denendi**: belge sayfası headless Chrome ile gerçekten PDF'e
+  basıldı (`Page.printToPDF`, CSS sayfa boyutu). Türkçe ve İtalyanca iki
+  belge: A4 yatay (841,9 × 595 pt), belge başına tam bir sayfa, arada boş
+  sayfa yok; arka plan grafikleri kapalıyken de bozulmuyor.
 - Yeni geliştirme bağımlılığı: `qrcode-generator` (MIT, bağımlılıksız;
   derlemeye gömülür).
 - Bu klasör hâlâ Git deposu DEĞİL; `../erasmus` Git'te. Sürüm kaydı için
