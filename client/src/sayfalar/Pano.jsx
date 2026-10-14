@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { durum, t, ortakAdi, ortakKisa, etkinlikBaslik, tamTarih, tarihAraligi, bugun, gunFarki } from '../ortak.js';
 import { useVeri } from '../kancalar.js';
 import { useBaslik } from '../bilesenler/Kabuk.jsx';
@@ -44,44 +45,74 @@ const kalanMetni = gun => {
   return n < 0 ? t('pano.gecikti', { n: -n }) : n === 0 ? t('pano.bugun') : t('pano.kalan', { n });
 };
 
-/* Sıfır olmayan sayı, işin yapılacağı yere götürür. Durumu bekleyen ve
-   eksik dosya aşağıdaki kutulara iner: orada kurum adıyla tek tek listelenir. */
-function Hucre({ n, href, uyari = false, metin = String(n) }) {
+/* Her sayı (sıfır da) kaynağına götürür; üzerine gelince nereden
+   geldiği yazar. Durumu bekleyen ve eksik dosya aşağıdaki kutulara iner:
+   orada kurum adıyla tek tek listelenir. */
+function Hucre({ n, href, sutun, uyari = false, metin = String(n) }) {
   return (
     <td className={uyari && n ? 'pano-uyari' : ''}>
-      {n && href ? <a className="pano-tablo-bag" href={href}>{metin}</a> : metin}
+      <a className="pano-tablo-bag" href={href} data-ipucu={t(`pano.g.${sutun}.kaynak`)}>{metin}</a>
     </td>
   );
 }
 
+/* Sütun başlığı ve sayı üzerine gelince (klavyede odakta, dokunmatikte
+   başlığa dokununca) kaynağını anlatan ipucu. Tablo yatay kaydırılan bir
+   kutuda olduğu için ipucu sabit konumla tablonun dışına çizilir; yoksa
+   kutunun kenarında kesilirdi. */
+function useIpucu() {
+  const [ipucu, setIpucu] = useState(null);
+  const goster = o => {
+    const h = o.target.closest?.('[data-ipucu]');
+    if (!h) return;
+    const r = h.getBoundingClientRect();
+    const x = Math.min(Math.max(r.left + r.width / 2, 150), innerWidth - 150);
+    setIpucu({ metin: h.dataset.ipucu, x, y: r.bottom + 8 });
+  };
+  const gizle = o => { if (o.target.closest?.('[data-ipucu]')) setIpucu(null); };
+  useEffect(() => {
+    if (!ipucu) return;
+    const kapat = () => setIpucu(null);
+    addEventListener('scroll', kapat, true);
+    return () => removeEventListener('scroll', kapat, true);
+  }, [ipucu]);
+  const olaylar = { onMouseOver: goster, onMouseOut: gizle, onFocus: goster, onBlur: gizle, onClick: goster };
+  const kutu = ipucu && <div className="pano-ipucu" role="tooltip" style={{ left: ipucu.x, top: ipucu.y }}>{ipucu.metin}</div>;
+  return [olaylar, kutu];
+}
+
 function Genel({ genel }) {
+  const [ipucuOlaylari, ipucuKutusu] = useIpucu();
   return (
     <section id="pano-genel" className="pano-kutu pano-genel">
       <div className="pano-kutu-bas"><h2>{t('pano.genel')}</h2></div>
       <p className="pano-bos">{t('pano.genelNot')}</p>
       <div className="tablo-kaydir">
-        <table className="pano-tablo">
+        <table className="pano-tablo" {...ipucuOlaylari}>
           <thead>
             <tr>
               {['pano.g.kurum', 'pano.g.acikGorev', 'pano.g.geciken', 'pano.g.bekleyenYanit', 'pano.g.durum', 'pano.g.eksikFaaliyet', 'pano.g.cikti']
-                .map(a => <th key={a} scope="col">{t(a)}</th>)}
+                .map(a => (a === 'pano.g.kurum'
+                  ? <th key={a} scope="col">{t(a)}</th>
+                  : <th key={a} scope="col"><span className="pano-ipucu-bas" tabIndex={0} data-ipucu={t(`${a}.kaynak`)}>{t(a)}</span></th>))}
             </tr>
           </thead>
           <tbody>
             {genel.map(g => (
               <tr key={g.partner}>
                 <th scope="row" title={ortakAdi(g.partner)}>{ortakKisa(g.partner)}</th>
-                <Hucre n={g.acikGorev} href="ekip.html" />
-                <Hucre n={g.gecikenGorev} href="ekip.html" uyari />
-                <Hucre n={g.bekleyenYanit} href="formlar.html" uyari />
-                <Hucre n={g.durumBekleyen} href="#pano-durum" uyari />
-                <Hucre n={g.eksikFaaliyet} href="#pano-eksik" uyari />
-                <Hucre n={g.ciktiToplam} href="ciktilar.html" metin={g.ciktiToplam ? `${g.ciktiTeslim}/${g.ciktiToplam}` : '—'} />
+                <Hucre n={g.acikGorev} href="ekip.html" sutun="acikGorev" />
+                <Hucre n={g.gecikenGorev} href="ekip.html" sutun="geciken" uyari />
+                <Hucre n={g.bekleyenYanit} href="formlar.html" sutun="bekleyenYanit" uyari />
+                <Hucre n={g.durumBekleyen} href="#pano-durum" sutun="durum" uyari />
+                <Hucre n={g.eksikFaaliyet} href="#pano-eksik" sutun="eksikFaaliyet" uyari />
+                <Hucre n={g.ciktiToplam} href="ciktilar.html" sutun="cikti" metin={g.ciktiToplam ? `${g.ciktiTeslim}/${g.ciktiToplam}` : '—'} />
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {ipucuKutusu}
     </section>
   );
 }

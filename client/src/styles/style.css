@@ -859,6 +859,11 @@ button.profil-sosyal-bag { width: 100%; font: inherit; font-weight: 700; cursor:
 .pano-uyari { color: #8f1e18; font-weight: 800 }
 .pano-tablo-bag { color: inherit; text-decoration: underline; text-underline-offset: 3px }
 .pano-tablo-bag:hover { text-decoration-thickness: 2px }
+.pano-ipucu-bas { cursor: help; border-bottom: 1px dotted currentColor }
+.pano-ipucu-bas:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px }
+.pano-ipucu { position: fixed; z-index: 50; transform: translateX(-50%); width: max-content; max-width: min(280px, calc(100vw - 32px));
+  padding: 8px 11px; border-radius: 8px; background: var(--murekkep); color: #fff; font-size: .8rem; line-height: 1.45;
+  text-align: left; text-transform: none; letter-spacing: 0; font-weight: 500; box-shadow: 0 6px 18px rgba(15, 31, 51, .22); pointer-events: none }
 @media (max-width: 720px) { .pano-izgara { grid-template-columns: minmax(0, 1fr) } }
 
 /* --- Renkli üst bant ------------------------------------------------------------
