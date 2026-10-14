@@ -20,6 +20,7 @@ import { kullanicilarRoutes } from './routes/kullanicilar.mjs';
 import { ciktiRoutes } from './routes/cikti.mjs';
 import { faaliyetRoutes } from './routes/faaliyet.mjs';
 import { panoRoutes } from './routes/pano.mjs';
+import { driveRoutes } from './routes/drive.mjs';
 
 /**
  * HTTP sunucusu: ortak başlıklar, oturum ve dil çözümü, yönlendirme zinciri
@@ -56,6 +57,7 @@ const kullanicilar = kullanicilarRoutes({ db });
 const cikti = ciktiRoutes({ db });
 const faaliyet = faaliyetRoutes({ db });
 const pano = panoRoutes({ db });
+const drive = driveRoutes({ db });
 
 /* Arayüz React ile yazılır (client/) ve `npm run build` ile dist/ klasörüne
    derlenir. Sayfa adresleri eskisiyle aynıdır — `takvim.html`,
@@ -63,7 +65,7 @@ const pano = panoRoutes({ db });
    React uygulaması (dist/index.html) verilir; hangi sayfanın çizileceğine
    tarayıcıda karar verilir. */
 const SAYFALAR = new Set(['/index.html', '/takvim.html', '/giris.html', '/ekip.html', '/formlar.html', '/belge.html',
-  '/klasorler.html', '/profil.html', '/kullanicilar.html', '/ciktilar.html', '/pano.html']);
+  '/klasorler.html', '/profil.html', '/kullanicilar.html', '/ciktilar.html', '/pano.html', '/drive.html']);
 const TURLER = {
   '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2', '.json': 'application/json',
@@ -195,6 +197,7 @@ const server = createServer(async (req, res) => {
     if (await cikti(ctx)) return;
     if (await faaliyet(ctx)) return;
     if (await pano(ctx)) return;
+    if (await drive(ctx)) return;
     if (await staticFile(req, res, url, readOnly)) return;
 
     send(res, 404, { error: 'Sayfa bulunamadı.' });
@@ -205,7 +208,9 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.requestTimeout = 15000;
+/* Drive'a 50 MB'lık dosya yavaş bağlantıda dakikalar sürebilir; başlıklar
+   yine 10 saniyede gelmeli, gövde boyutunu da her uç kendisi sınırlar. */
+server.requestTimeout = 600000;
 server.headersTimeout = 10000;
 server.listen(port, process.env.HOST || '127.0.0.1',
   () => console.log(`${PROJECT.acronym} platformu: ${origin}${basePath} (${db.kind})`));

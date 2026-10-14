@@ -31,6 +31,7 @@ const MENU = [
   { anahtar: 'menu.formlar', href: 'formlar.html' },
   { anahtar: 'menu.belgeler', href: 'belge.html' },
   { anahtar: 'menu.klasorler', href: 'klasorler.html' },
+  { anahtar: 'menu.drive', href: 'drive.html' },
   { anahtar: 'menu.kullanicilar', href: 'kullanicilar.html', koordinator: true },
 ];
 

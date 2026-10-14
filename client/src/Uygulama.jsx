@@ -16,6 +16,7 @@ const SAYFA = {
   'formlar.html': lazy(() => import('./sayfalar/Formlar.jsx')),
   'belge.html': lazy(() => import('./sayfalar/Belge.jsx')),
   'klasorler.html': lazy(() => import('./sayfalar/Klasorler.jsx')),
+  'drive.html': lazy(() => import('./sayfalar/Drive.jsx')),
   'kullanicilar.html': lazy(() => import('./sayfalar/Kullanicilar.jsx')),
   'giris.html': lazy(() => import('./sayfalar/Giris.jsx')),
   'profil.html': lazy(() => import('./sayfalar/Profil.jsx')),
