@@ -8,6 +8,7 @@ import { OnayKutusu, Bildirimler } from './bilesenler/Kutu.jsx';
    düzenleyicisinin kodunu indirmek zorunda kalmasın. */
 const SAYFA = {
   'index.html': lazy(() => import('./sayfalar/Anasayfa.jsx')),
+  'tanitim': lazy(() => import('./sayfalar/Tanitim.jsx')),
   'pano.html': lazy(() => import('./sayfalar/Pano.jsx')),
   'takvim.html': lazy(() => import('./sayfalar/Takvim.jsx')),
   'ciktilar.html': lazy(() => import('./sayfalar/Ciktilar.jsx')),
@@ -22,7 +23,9 @@ const SAYFA = {
 
 export default function Uygulama() {
   const { sayfa, search } = useKonum();
-  const Sayfa = SAYFA[sayfa];
+  /* Ana adres oturumsuz ziyaretçiye projenin tanıtımını gösterir; giriş
+     yapan aynı adreste canlı veriyle çizilen ana sayfayı görür. */
+  const Sayfa = SAYFA[sayfa === 'index.html' && !durum.kullanici ? 'tanitim' : sayfa];
 
   /* KAPI (istemci tarafı). Asıl kapı sunucudadır (server.mjs); bu yalnızca
      oturum uygulama içindeyken düştüğünde (ör. süre doldu, başka sekmede
@@ -30,8 +33,7 @@ export default function Uygulama() {
   const kapali = !durum.kullanici && !ACIK_SAYFALAR.has(sayfa);
   useEffect(() => {
     if (!kapali) return;
-    const geri = sayfa === 'index.html' ? '' : `?geri=${encodeURIComponent(sayfa + search)}`;
-    git(`giris.html${geri}`, { degistir: true });
+    git(`giris.html?geri=${encodeURIComponent(sayfa + search)}`, { degistir: true });
   }, [kapali, sayfa, search]);
 
   return (

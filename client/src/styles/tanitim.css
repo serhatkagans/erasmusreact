@@ -1,0 +1,145 @@
+/* --- Tanıtım sayfası (oturumsuz ziyaretçinin ana sayfası) -------------------
+   erasmusdays.eu'nun kurgusu: iri ve kısa bir başlık, tek bir belirgin
+   çağrı düğmesi, çizimli "nedir" bölümü, koyu bir rakam bandı, kartlar ve
+   sonda takip çağrısı. Renkler style.css'teki logo paletinden gelir; tema
+   değişince (data-tema) vurgu ve bant da onunla değişir. */
+
+.tanitim section[id] { scroll-margin-top: 96px }
+.tanitim h2 { font-size: clamp(1.75rem, 3.2vw, 2.5rem); line-height: 1.15; letter-spacing: -.025em; color: var(--murekkep); margin: 0 0 14px }
+
+/* Giriş bölümü */
+.tn-kahraman { position: relative; overflow: hidden; padding: clamp(48px, 8vw, 110px) 0 clamp(48px, 7vw, 96px); background:
+  radial-gradient(900px 460px at 6% -10%, rgba(70,170,118,.28), transparent 62%),
+  radial-gradient(760px 440px at 96% 10%, rgba(16,132,194,.26), transparent 62%),
+  linear-gradient(180deg, #eef5f8 0%, var(--zemin) 100%) }
+.tn-kahraman-ic { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: clamp(28px, 5vw, 64px); align-items: center }
+.tn-rozet { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; margin-bottom: 22px; border-radius: 999px; background: var(--kart); border: 1px solid var(--cizgi); font-size: .85rem; font-weight: 700; color: var(--murekkep) }
+.tn-rozet span { color: var(--yesil-acik); font-size: .7rem }
+.tn-kahraman h1 { margin: 0 0 22px; font-size: clamp(2.3rem, 5.4vw, 4.1rem); line-height: 1.04; letter-spacing: -.04em; font-weight: 900; color: var(--murekkep); text-wrap: balance }
+.tn-vurgu { background: var(--baslik-gecis); -webkit-background-clip: text; background-clip: text; color: transparent }
+:root:not([data-tema]) .tn-vurgu { background: linear-gradient(90deg, var(--yesil) 0%, var(--mavi-acik) 100%); -webkit-background-clip: text; background-clip: text }
+.tn-giris { font-size: clamp(1.05rem, 1.6vw, 1.22rem); max-width: 58ch; margin: 0 0 30px }
+.tn-dugmeler { display: flex; gap: 12px; flex-wrap: wrap }
+.tn-dugme-buyuk { min-height: 52px; padding: 12px 28px; font-size: 1.05rem; border-radius: 999px; box-shadow: 0 10px 24px rgba(var(--vurgu-rgb), .28) }
+.tn-dugme-cizgi { min-height: 52px; padding: 12px 26px; border-radius: 999px; border-color: var(--murekkep); color: var(--murekkep); background: transparent }
+.tn-dugme-cizgi:hover { background: var(--murekkep); color: #fff }
+.tn-tarih { display: flex; align-items: center; gap: 8px; margin: 26px 0 0; font-size: .92rem; font-weight: 650; color: var(--soluk) }
+.tn-tarih svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round }
+
+.tn-gezegen { width: min(100%, 460px); justify-self: center }
+.tn-gezegen svg { display: block; width: 100%; height: auto; overflow: visible }
+.tn-yorunge { fill: none; stroke: var(--cizgi-koyu); stroke-width: 1.5; stroke-dasharray: 4 8 }
+.tn-kure-cizgi ellipse { fill: none; stroke: rgba(255,255,255,.22); stroke-width: 1.2 }
+.tn-logo-zemin { fill: #fff; stroke: rgba(255,255,255,.5); stroke-width: 6; filter: drop-shadow(0 10px 22px rgba(10,29,53,.35)) }
+.tn-ulkeler { transform-origin: 200px 200px; animation: tn-don 60s linear infinite }
+.tn-ulkeler g text { animation: tn-don 60s linear infinite reverse; transform-box: fill-box; transform-origin: center }
+.tn-ulke-daire { fill: var(--kart); stroke: var(--yesil-acik); stroke-width: 2.5 }
+.tn-ulke-kod { font: 800 13px var(--yazi); fill: var(--murekkep); letter-spacing: .02em }
+.tn-yildiz { fill: var(--filiz) }
+@keyframes tn-don { to { transform: rotate(360deg) } }
+
+/* "Nedir" bölümü */
+.tn-nedir-ic { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: clamp(28px, 6vw, 80px); align-items: center }
+.tn-nedir-gorsel { padding: clamp(24px, 3vw, 40px); border-radius: 24px; background: #fff; border: 1px solid var(--cizgi); box-shadow: var(--golge-o) }
+.tn-nedir-gorsel img { display: block; width: 100%; height: auto }
+.tn-buyuk-metin { font-size: 1.18rem; color: var(--murekkep) }
+.tn-alt-baslik { margin: 26px 0 12px; font-size: 1.05rem; color: var(--murekkep) }
+.tn-hedefler { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
+.tn-hedefler li { position: relative; padding-left: 32px }
+.tn-hedefler li::before { content: ""; position: absolute; left: 0; top: .32em; width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(var(--vurgu-rgb), .12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m6 10.5 2.6 2.5L14 7.5' fill='none' stroke='%231f7f55' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 20px no-repeat }
+
+/* Rakam bandı */
+.tn-rakam { padding: clamp(44px, 6vw, 76px) 0; background: var(--bant); color: #fff; position: relative }
+.tn-rakam::after { content: ""; position: absolute; inset: auto 0 0; height: 4px; background: var(--bant-cizgi) }
+.tanitim .tn-rakam-baslik { text-align: center; color: #fff; font-size: clamp(1.3rem, 2.4vw, 1.7rem); margin-bottom: 32px }
+.tn-rakamlar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px }
+.tn-rakam-oge { text-align: center; padding: 8px }
+.tn-rakam-oge + .tn-rakam-oge { border-left: 1px solid rgba(255,255,255,.18) }
+.tn-rakam-oge strong { display: block; font-size: clamp(2.6rem, 6vw, 4.2rem); font-weight: 900; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums }
+.tn-rakam-oge span { display: block; margin-top: 8px; font-size: .92rem; font-weight: 650; color: rgba(255,255,255,.8) }
+
+/* Bölüm başlığı: solda başlık, sağda açıklama */
+.tn-bolum-bas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 48px; align-items: end; margin-bottom: 34px }
+.tn-bolum-bas h2 { margin-bottom: 0 }
+.tn-bolum-bas p { margin: 0; color: var(--soluk) }
+
+/* Çıktı kartları */
+.tn-kartlar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px }
+.tn-kart { padding: 26px; border-radius: 20px; background: var(--zemin); border: 1px solid var(--cizgi); transition: transform 160ms, box-shadow 160ms, border-color 160ms }
+.tn-kart:hover { transform: translateY(-4px); box-shadow: var(--golge-b); border-color: transparent; background: var(--kart) }
+.tn-kart h3 { margin: 0 0 8px; font-size: 1.12rem; color: var(--murekkep) }
+.tn-kart p { margin: 0; font-size: .95rem; color: var(--soluk) }
+.tn-simge { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 18px; border-radius: 14px; background: linear-gradient(135deg, var(--yesil-acik), var(--mavi-acik)); color: #fff }
+.tn-simge svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round }
+
+/* Yol haritası: iş paketleri bir hat üzerinde */
+.tn-yol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; position: relative }
+.tn-yol::before { content: ""; position: absolute; top: 27px; left: 28px; right: 28px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--wp1), var(--wp2), var(--wp3), var(--wp4)) }
+.tn-adim { position: relative }
+.tn-adim-no { position: relative; display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 18px; border-radius: 50%; background: var(--kart); border: 3px solid var(--wp-renk, var(--vurgu)); color: var(--wp-renk, var(--vurgu)); font-weight: 900; font-size: .95rem }
+.tn-adim[data-wp="WP1"] { --wp-renk: var(--wp1) }
+.tn-adim[data-wp="WP2"] { --wp-renk: var(--wp2) }
+.tn-adim[data-wp="WP3"] { --wp-renk: var(--wp3) }
+.tn-adim[data-wp="WP4"] { --wp-renk: var(--wp4) }
+.tn-adim h3 { margin: 0 0 8px; font-size: 1.08rem; color: var(--murekkep) }
+.tn-adim p { margin: 0; font-size: .94rem; color: var(--soluk) }
+
+/* Kimler için */
+.tn-kim { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px }
+.tn-kim-kart { padding: 28px; border-radius: 20px; color: #fff; min-height: 190px; display: flex; flex-direction: column; justify-content: flex-end }
+.tn-kim-kart[data-n="1"] { background: linear-gradient(150deg, var(--yesil-acik), var(--yesil-koyu)) }
+.tn-kim-kart[data-n="2"] { background: linear-gradient(150deg, var(--mavi-acik), #0b4f80) }
+.tn-kim-kart[data-n="3"] { background: linear-gradient(150deg, #1d3d63, var(--mavi)) }
+.tn-kim-kart h3 { margin: 0 0 8px; font-size: 1.2rem; color: #fff }
+.tn-kim-kart p { margin: 0; font-size: .95rem; color: rgba(255,255,255,.88) }
+
+/* Ortaklar */
+.tn-ortaklar { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px }
+.tn-ortak { display: flex; align-items: center; gap: 14px; padding: 18px 20px; border-radius: 16px; background: var(--kart); border: 1px solid var(--cizgi); color: inherit; transition: border-color 140ms, box-shadow 140ms }
+a.tn-ortak:hover { border-color: var(--vurgu); box-shadow: var(--golge-o) }
+.tn-ortak-bayrak { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: var(--zemin); font-size: 1.5rem }
+.tn-ortak-metin { min-width: 0; flex: 1 }
+.tn-ortak-metin strong { display: block; color: var(--murekkep); line-height: 1.3 }
+.tn-ortak-metin span { display: block; font-size: .86rem; color: var(--soluk) }
+
+/* Takip çağrısı */
+.tn-cagri { padding: clamp(48px, 6vw, 84px) 0; background:
+  radial-gradient(700px 360px at 0% 100%, rgba(140,193,82,.22), transparent 60%),
+  radial-gradient(700px 360px at 100% 0%, rgba(16,132,194,.18), transparent 60%), var(--kart);
+  border-top: 1px solid var(--cizgi) }
+.tn-cagri-ic { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 32px 56px; align-items: center }
+.tn-cagri p { max-width: 56ch }
+.tn-sosyal { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px }
+.tn-sosyal-bag { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 20px; border-radius: 999px; background: var(--murekkep); color: #fff; font-weight: 700; font-size: .95rem; transition: background 120ms, transform 120ms }
+.tn-sosyal-bag:hover { background: var(--vurgu); transform: translateY(-1px) }
+.tn-cagri-kart { padding: 28px; border-radius: 20px; background: var(--kart); border: 1px solid var(--cizgi); box-shadow: var(--golge-o) }
+.tn-cagri-kart h3 { margin: 0 0 8px; font-size: 1.2rem; color: var(--murekkep) }
+.tn-cagri-kart p { margin: 0 0 18px; color: var(--soluk); font-size: .95rem }
+.tn-cagri-kart .dugme { width: 100% }
+
+/* Dar ekran */
+@media (max-width: 1000px) {
+  .tn-kahraman-ic, .tn-nedir-ic, .tn-cagri-ic { grid-template-columns: minmax(0, 1fr) }
+  .tn-gezegen { max-width: 360px }
+  .tn-nedir-gorsel { max-width: 560px }
+  .tn-kartlar { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .tn-yol { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 32px }
+  .tn-yol::before { display: none }
+  .tn-rakamlar { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 28px }
+  .tn-rakam-oge:nth-child(4) { border-left: 0 }
+}
+@media (max-width: 720px) {
+  .tn-bolum-bas { grid-template-columns: minmax(0, 1fr) }
+  .tn-kartlar, .tn-yol, .tn-kim { grid-template-columns: minmax(0, 1fr) }
+  .tn-ortaklar { grid-template-columns: minmax(0, 1fr) }
+  .tn-rakamlar { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .tn-rakam-oge { border-left: 0 !important }
+  .tn-rakam-oge:last-child { grid-column: 1 / -1 }
+  .tn-kim-kart { min-height: 0 }
+  .tn-dugmeler .dugme { flex: 1 1 100% }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tn-ulkeler, .tn-ulkeler g text { animation: none }
+  .tn-kart:hover { transform: none }
+}

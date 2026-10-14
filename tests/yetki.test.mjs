@@ -28,7 +28,7 @@ const etkinlik = (uzer = {}) => ({
   ...uzer,
 });
 
-test('platform dışarıya kapalı: oturumsuz kişi yalnızca giriş ve profil kartını görür', async () => {
+test('platform dışarıya kapalı: oturumsuz kişi yalnızca tanıtım, giriş ve profil kartını görür', async () => {
   const anonim = await istemci(sunucu);
 
   /* Veri uçları 401. */
@@ -38,10 +38,9 @@ test('platform dışarıya kapalı: oturumsuz kişi yalnızca giriş ve profil k
   const yazma = await anonim.iste('/api/etkinlikler', { method: 'POST', body: etkinlik() });
   assert.equal(yazma.durum, 401);
 
-  /* Sayfalar girişe yönlenir; geri dönülecek adres taşınır. */
-  const ana = await anonim.iste('/');
-  assert.equal(ana.durum, 302);
-  assert.equal(ana.basliklar.get('location'), 'giris.html');
+  /* Ana adres tanıtım sayfasıdır; öbür sayfalar girişe yönlenir ve geri
+     dönülecek adres taşınır. */
+  assert.equal((await anonim.iste('/')).durum, 200);
   const takvim = await anonim.iste('/takvim.html?gorunum=liste');
   assert.equal(takvim.durum, 302);
   assert.equal(takvim.basliklar.get('location'), 'giris.html?geri=' + encodeURIComponent('takvim.html?gorunum=liste'));

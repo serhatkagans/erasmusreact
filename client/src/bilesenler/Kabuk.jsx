@@ -34,6 +34,16 @@ const MENU = [
   { anahtar: 'menu.kullanicilar', href: 'kullanicilar.html', koordinator: true },
 ];
 
+/* Oturumsuz ziyaretçi yalnızca tanıtım sayfasını görür; menüsü o sayfanın
+   bölümlerine götüren çapalardır (bkz. sayfalar/Tanitim.jsx). */
+const ZIYARETCI_MENU = [
+  { anahtar: 'tanitim.menu.hakkinda', href: '#hakkinda' },
+  { anahtar: 'tanitim.menu.ciktilar', href: '#ciktilar' },
+  { anahtar: 'tanitim.menu.yol', href: '#yol-haritasi' },
+  { anahtar: 'tanitim.menu.ortaklar', href: '#ortaklar' },
+  { anahtar: 'tanitim.menu.iletisim', href: '#takip' },
+];
+
 /** Açılır panel: dışarı tıklayınca ve Esc ile kapanır. */
 function useAcilir() {
   const [acik, setAcik] = useState(false);
@@ -66,6 +76,7 @@ function UstBant() {
   }, [menuAcik]);
 
   const ogeler = MENU.filter(o => !o.koordinator || k?.koordinator);
+  const tanitim = !k && sayfa === 'index.html';
 
   return (
     <header className={`ust${menuAcik ? ' menu-acik' : ''}`}>
@@ -74,11 +85,14 @@ function UstBant() {
           <img src="logo.png" alt="" />
           <span>E-YOUTHPRENEUR <small>{t('altbilgi.kunye')}</small></span>
         </a>
-        {/* Oturumsuz kişi yalnızca giriş ve profil kartını görebilir; menüdeki
-            her bağlantı onu girişe geri yollardı. */}
-        <nav className="gezinme" id="gezinme" aria-label={t('menu.ana')} hidden={!k}>
+        {/* Oturumsuz kişi yalnızca tanıtım, giriş ve profil kartını görebilir;
+            uygulama menüsündeki her bağlantı onu girişe geri yollardı. */}
+        <nav className="gezinme" id="gezinme" aria-label={t('menu.ana')} hidden={!k && !tanitim}>
           {k && ogeler.map(o => (
             <a key={o.href} href={o.href} aria-current={(o.sayfa || o.href) === sayfa ? 'page' : undefined}>{t(o.anahtar)}</a>
+          ))}
+          {tanitim && ZIYARETCI_MENU.map(o => (
+            <a key={o.href} href={o.href} onClick={() => setMenuAcik(false)}>{t(o.anahtar)}</a>
           ))}
         </nav>
         <div className="ust-sag">
@@ -87,7 +101,7 @@ function UstBant() {
           <DilSecici />
           {k && <HesapMenusu parolaAc={() => setParolaAcik(true)} />}
           <a id="giris-baglanti" className="dugme dugme-hayalet" href="giris.html" hidden={!!k || sayfa === 'giris.html'}>{t('menu.giris')}</a>
-          <button id="menu-dugme" className="menu-dugme" type="button" aria-expanded={menuAcik} aria-controls="gezinme" hidden={!k}
+          <button id="menu-dugme" className="menu-dugme" type="button" aria-expanded={menuAcik} aria-controls="gezinme" hidden={!k && !tanitim}
             onClick={() => setMenuAcik(a => !a)}>
             <span aria-hidden="true">☰</span> <span>{t('menu.menu')}</span>
           </button>

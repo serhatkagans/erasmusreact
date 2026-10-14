@@ -20,8 +20,9 @@ import { useSyncExternalStore } from 'react';
 export const SAYFALAR = ['index.html', 'pano.html', 'takvim.html', 'ciktilar.html', 'ekip.html', 'formlar.html',
   'belge.html', 'klasorler.html', 'kullanicilar.html', 'giris.html', 'profil.html'];
 
-/** Oturumsuz açılabilen sayfalar (sunucudaki ACIK_SAYFA ile aynı). */
-export const ACIK_SAYFALAR = new Set(['giris.html', 'profil.html']);
+/** Oturumsuz açılabilen sayfalar (sunucudaki ACIK_SAYFA ile aynı). Ana
+    adres oturumsuz ziyaretçiye tanıtım sayfasını gösterir. */
+export const ACIK_SAYFALAR = new Set(['index.html', 'giris.html', 'profil.html']);
 
 const dinleyiciler = new Set();
 const haberVer = () => { for (const d of dinleyiciler) d(); };

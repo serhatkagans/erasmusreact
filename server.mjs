@@ -31,14 +31,16 @@ import { panoRoutes } from './routes/pano.mjs';
  * statik dosyalara, oradan da 404'e düşülür.
  *
  * PLATFORM DIŞARIYA KAPALIDIR (kullanıcı kararı, 23 Eylül 2026: "ziyaretçi
- * yok, herkes üye olacak"). Oturumsuz istek yalnızca giriş sayfasına ve
- * NFC profil kartlarına ulaşır; kart, dağıtıldığı kişilerin girişi
- * olmadığı için bilinçli istisnadır. Kural route'lara tek tek yazılmadı,
+ * yok, herkes üye olacak"). Oturumsuz istek yalnızca giriş sayfasına,
+ * NFC profil kartlarına ve ana adresteki tanıtım sayfasına ulaşır; kart,
+ * dağıtıldığı kişilerin girişi olmadığı için bilinçli istisnadır. Tanıtım
+ * sayfası (8 Ekim 2026) yalnızca /api/acilis'teki künyeyi ve sözlüğü
+ * kullanır: program verisi yine girişin arkasındadır. Kural route'lara tek tek yazılmadı,
  * aşağıdaki KAPI'da durur: yeni eklenen bir uç ya da sayfa kendiliğinden
  * kapalı doğar, açmak için bu listeye eklemek gerekir.
  */
 const ACIK_API = new Set(['/api/acilis', '/api/giris', '/api/cikis', '/api/profil', '/api/profil/foto', '/api/profil/vcard']);
-const ACIK_SAYFA = new Set(['/giris.html', '/profil.html']);
+const ACIK_SAYFA = new Set(['/index.html', '/giris.html', '/profil.html']);
 const db = await openDb();
 
 const etkinlik = etkinlikRoutes({ db });
@@ -140,7 +142,7 @@ const server = createServer(async (req, res) => {
         return send(res, 401, { error: 'genel.girisGerekli' });
       }
       if (SAYFALAR.has(sayfa) && !ACIK_SAYFA.has(sayfa)) {
-        const geri = sayfa === '/index.html' ? '' : `?geri=${encodeURIComponent(sayfa.slice(1) + url.search)}`;
+        const geri = `?geri=${encodeURIComponent(sayfa.slice(1) + url.search)}`;
         res.writeHead(302, { Location: `giris.html${geri}`, 'Cache-Control': 'no-store' });
         res.end();
         return;
