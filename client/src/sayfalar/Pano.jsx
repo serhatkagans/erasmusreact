@@ -10,9 +10,9 @@ import { useBaslik } from '../bilesenler/Kabuk.jsx';
  */
 
 /** Bir pano kutusu: başlık, sayı, satırlar; boşsa olumlu bir cümle. */
-function PanoKutu({ baslik, satirlar, bos, tumu, tumuMetin, vurgu = false }) {
+function PanoKutu({ baslik, satirlar, bos, tumu, tumuMetin, vurgu = false, id }) {
   return (
-    <section className={`pano-kutu${vurgu && satirlar.length ? ' pano-kutu-vurgu' : ''}`}>
+    <section id={id} className={`pano-kutu${vurgu && satirlar.length ? ' pano-kutu-vurgu' : ''}`}>
       <div className="pano-kutu-bas">
         <h2>{t(baslik)}</h2>
         <span className="pano-sayi">{String(satirlar.length)}</span>
@@ -44,6 +44,16 @@ const kalanMetni = gun => {
   return n < 0 ? t('pano.gecikti', { n: -n }) : n === 0 ? t('pano.bugun') : t('pano.kalan', { n });
 };
 
+/* Sıfır olmayan sayı, işin yapılacağı yere götürür. Durumu bekleyen ve
+   eksik dosya aşağıdaki kutulara iner: orada kurum adıyla tek tek listelenir. */
+function Hucre({ n, href, uyari = false, metin = String(n) }) {
+  return (
+    <td className={uyari && n ? 'pano-uyari' : ''}>
+      {n && href ? <a className="pano-tablo-bag" href={href}>{metin}</a> : metin}
+    </td>
+  );
+}
+
 function Genel({ genel }) {
   return (
     <section id="pano-genel" className="pano-kutu pano-genel">
@@ -61,11 +71,12 @@ function Genel({ genel }) {
             {genel.map(g => (
               <tr key={g.partner}>
                 <th scope="row" title={ortakAdi(g.partner)}>{ortakKisa(g.partner)}</th>
-                <td>{String(g.acikGorev)}</td>
-                {[g.gecikenGorev, g.bekleyenYanit, g.durumBekleyen, g.eksikFaaliyet].map((n, i) => (
-                  <td key={i} className={n ? 'pano-uyari' : ''}>{String(n)}</td>
-                ))}
-                <td>{g.ciktiToplam ? `${g.ciktiTeslim}/${g.ciktiToplam}` : '—'}</td>
+                <Hucre n={g.acikGorev} href="ekip.html" />
+                <Hucre n={g.gecikenGorev} href="ekip.html" uyari />
+                <Hucre n={g.bekleyenYanit} href="formlar.html" uyari />
+                <Hucre n={g.durumBekleyen} href="#pano-durum" uyari />
+                <Hucre n={g.eksikFaaliyet} href="#pano-eksik" uyari />
+                <Hucre n={g.ciktiToplam} href="ciktilar.html" metin={g.ciktiToplam ? `${g.ciktiTeslim}/${g.ciktiToplam}` : '—'} />
               </tr>
             ))}
           </tbody>
@@ -118,11 +129,11 @@ export default function Pano() {
     kutular = (
       <>
         {/* En üstte: ilerleme çubukları elle ilerlediği için unutulanlar. */}
-        <PanoKutu baslik="pano.durum" satirlar={durumlar} bos="pano.durum.bos" vurgu />
+        <PanoKutu baslik="pano.durum" satirlar={durumlar} bos="pano.durum.bos" vurgu id="pano-durum" />
         <PanoKutu baslik="pano.geciken" satirlar={gecikenler} bos="pano.geciken.bos" tumu="ekip.html" tumuMetin="pano.tumGorevler" vurgu />
         <PanoKutu baslik="pano.formlar" satirlar={formlar} bos="pano.formlar.bos" tumu="formlar.html" tumuMetin="pano.tumFormlar" vurgu />
         <PanoKutu baslik="pano.yaklasan" satirlar={yaklasan} bos="pano.yaklasan.bos" tumu="takvim.html" tumuMetin="pano.takvim" />
-        <PanoKutu baslik="pano.eksikDosya" satirlar={eksik} bos="pano.eksikDosya.bos" vurgu />
+        <PanoKutu baslik="pano.eksikDosya" satirlar={eksik} bos="pano.eksikDosya.bos" vurgu id="pano-eksik" />
         <PanoKutu baslik="pano.ciktilar" satirlar={ciktilar} bos="pano.ciktilar.bos" tumu="ciktilar.html" tumuMetin="pano.tumCiktilar" />
         <PanoKutu baslik="pano.dosyalar" satirlar={dosyalar} bos="pano.dosyalar.bos" tumu="klasorler.html" tumuMetin="pano.klasorler" />
       </>
