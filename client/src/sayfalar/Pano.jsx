@@ -11,7 +11,7 @@ import { useBaslik } from '../bilesenler/Kabuk.jsx';
  */
 
 /** Bir pano kutusu: başlık, sayı, satırlar; boşsa olumlu bir cümle. */
-function PanoKutu({ baslik, satirlar, bos, tumu, tumuMetin, vurgu = false, id }) {
+function PanoKutu({ baslik, satirlar, bos, tumu, tumuMetin, vurgu = false, id, ekBag }) {
   return (
     <section id={id} className={`pano-kutu${vurgu && satirlar.length ? ' pano-kutu-vurgu' : ''}`}>
       <div className="pano-kutu-bas">
@@ -21,7 +21,12 @@ function PanoKutu({ baslik, satirlar, bos, tumu, tumuMetin, vurgu = false, id })
       {!satirlar.length
         ? <p className="pano-bos">{t(bos)}</p>
         : <ul className="pano-liste">{satirlar.map((s, i) => <Satir key={i} {...s} />)}</ul>}
-      {tumu && <a className="metin-bag pano-tumu" href={tumu}>{`${t(tumuMetin)} →`}</a>}
+      {(tumu || ekBag) && (
+        <div className="pano-tumu-satir">
+          {tumu && <a className="metin-bag pano-tumu" href={tumu}>{`${t(tumuMetin)} →`}</a>}
+          {ekBag && <a className="metin-bag pano-tumu" href={ekBag[0]}>{`${t(ekBag[1])} →`}</a>}
+        </div>
+      )}
     </section>
   );
 }
@@ -160,11 +165,12 @@ export default function Pano() {
     kutular = (
       <>
         {/* En üstte: ilerleme çubukları elle ilerlediği için unutulanlar. */}
-        <PanoKutu baslik="pano.durum" satirlar={durumlar} bos="pano.durum.bos" vurgu id="pano-durum" />
+        <PanoKutu baslik="pano.durum" satirlar={durumlar} bos="pano.durum.bos" vurgu id="pano-durum"
+          tumu="takvim.html" tumuMetin="pano.takvim" ekBag={['ciktilar.html', 'pano.tumCiktilar']} />
         <PanoKutu baslik="pano.geciken" satirlar={gecikenler} bos="pano.geciken.bos" tumu="ekip.html" tumuMetin="pano.tumGorevler" vurgu />
         <PanoKutu baslik="pano.formlar" satirlar={formlar} bos="pano.formlar.bos" tumu="formlar.html" tumuMetin="pano.tumFormlar" vurgu />
         <PanoKutu baslik="pano.yaklasan" satirlar={yaklasan} bos="pano.yaklasan.bos" tumu="takvim.html" tumuMetin="pano.takvim" />
-        <PanoKutu baslik="pano.eksikDosya" satirlar={eksik} bos="pano.eksikDosya.bos" vurgu id="pano-eksik" />
+        <PanoKutu baslik="pano.eksikDosya" satirlar={eksik} bos="pano.eksikDosya.bos" vurgu id="pano-eksik" tumu="takvim.html" tumuMetin="pano.takvim" />
         <PanoKutu baslik="pano.ciktilar" satirlar={ciktilar} bos="pano.ciktilar.bos" tumu="ciktilar.html" tumuMetin="pano.tumCiktilar" />
         <PanoKutu baslik="pano.dosyalar" satirlar={dosyalar} bos="pano.dosyalar.bos" tumu="klasorler.html" tumuMetin="pano.klasorler" />
       </>

@@ -859,6 +859,8 @@ button.profil-sosyal-bag { width: 100%; font: inherit; font-weight: 700; cursor:
 .pano-uyari { color: #8f1e18; font-weight: 800 }
 .pano-tablo-bag { color: inherit; text-decoration: underline; text-underline-offset: 3px }
 .pano-tablo-bag:hover { text-decoration-thickness: 2px }
+.pano-tumu-satir { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 10px }
+.pano-tumu-satir .pano-tumu { margin-top: 0 }
 .pano-ipucu-bas { cursor: help; border-bottom: 1px dotted currentColor }
 .pano-ipucu-bas:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px }
 .pano-ipucu { position: fixed; z-index: 50; transform: translateX(-50%); width: max-content; max-width: min(280px, calc(100vw - 32px));
