@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { durum, t, yerAdi } from '../ortak.js';
 import { useCapayaKaydir } from '../kancalar.js';
 import { useBaslik } from '../bilesenler/Kabuk.jsx';
+import Kure from './Kure.jsx';
 import '../styles/tanitim.css';
 
 /**
@@ -54,7 +55,7 @@ export default function Tanitim() {
               {t('altbilgi.sure')}
             </p>
           </div>
-          <Gezegen ulkeler={ulkeler} />
+          <Kure ortaklar={ortaklar} />
         </div>
       </section>
 
@@ -199,52 +200,6 @@ export default function Tanitim() {
         </div>
       </section>
     </main>
-  );
-}
-
-/* Giriş bölümünün çizimi: projenin dünyası, üstünde logo; yörüngesinde
-   ortak ülkeler (sayıları ve kodları künyeden gelir). */
-function Gezegen({ ulkeler }) {
-  const yaricap = 150;
-  return (
-    <div className="tn-gezegen" aria-hidden="true">
-      <svg viewBox="0 0 400 400">
-        <circle cx="200" cy="200" r={yaricap + 24} className="tn-yorunge" />
-        <defs>
-          <radialGradient id="tn-kure" cx="35%" cy="30%" r="75%">
-            <stop offset="0" stopColor="#46aa76" />
-            <stop offset=".55" stopColor="#1084c2" />
-            <stop offset="1" stopColor="#0f2a4a" />
-          </radialGradient>
-          {/* logo.png kare ve beyaz zeminli: kürenin üstünde yuvarlak bir rozet olsun diye daireye kırpılır. */}
-          <clipPath id="tn-logo-kirp"><circle cx="200" cy="200" r="62" /></clipPath>
-        </defs>
-        <circle cx="200" cy="200" r="118" fill="url(#tn-kure)" />
-        <g className="tn-kure-cizgi">
-          <ellipse cx="200" cy="200" rx="118" ry="40" />
-          <ellipse cx="200" cy="200" rx="118" ry="82" />
-          <ellipse cx="200" cy="200" rx="46" ry="118" />
-          <ellipse cx="200" cy="200" rx="88" ry="118" />
-        </g>
-        <circle cx="200" cy="200" r="66" className="tn-logo-zemin" />
-        <image href="logo.png" x="138" y="138" width="124" height="124" clipPath="url(#tn-logo-kirp)" />
-        <g className="tn-ulkeler">
-          {ulkeler.map((kod, i) => {
-            const aci = (i / ulkeler.length) * Math.PI * 2 - Math.PI / 2;
-            const x = 200 + Math.cos(aci) * (yaricap + 24);
-            const y = 200 + Math.sin(aci) * (yaricap + 24);
-            return (
-              <g key={kod} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
-                <circle r="22" className="tn-ulke-daire" />
-                <text dy=".35em" textAnchor="middle" className="tn-ulke-kod">{kod}</text>
-              </g>
-            );
-          })}
-        </g>
-        <path className="tn-yildiz" d="M28 26l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" />
-        <path className="tn-yildiz" d="M372 356l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" />
-      </svg>
-    </div>
   );
 }
 

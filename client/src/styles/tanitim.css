@@ -26,17 +26,16 @@
 .tn-tarih { display: flex; align-items: center; gap: 8px; margin: 26px 0 0; font-size: .92rem; font-weight: 650; color: var(--soluk) }
 .tn-tarih svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round }
 
-.tn-gezegen { width: min(100%, 460px); justify-self: center }
-.tn-gezegen svg { display: block; width: 100%; height: auto; overflow: visible }
-.tn-yorunge { fill: none; stroke: var(--cizgi-koyu); stroke-width: 1.5; stroke-dasharray: 4 8 }
-.tn-kure-cizgi ellipse { fill: none; stroke: rgba(255,255,255,.22); stroke-width: 1.2 }
-.tn-logo-zemin { fill: #fff; stroke: rgba(255,255,255,.5); stroke-width: 6; filter: drop-shadow(0 10px 22px rgba(10,29,53,.35)) }
-.tn-ulkeler { transform-origin: 200px 200px; animation: tn-don 60s linear infinite }
-.tn-ulkeler g text { animation: tn-don 60s linear infinite reverse; transform-box: fill-box; transform-origin: center }
-.tn-ulke-daire { fill: var(--kart); stroke: var(--yesil-acik); stroke-width: 2.5 }
-.tn-ulke-kod { font: 800 13px var(--yazi); fill: var(--murekkep); letter-spacing: .02em }
-.tn-yildiz { fill: var(--filiz) }
-@keyframes tn-don { to { transform: rotate(360deg) } }
+.tn-gezegen { position: relative; width: min(100%, 460px); aspect-ratio: 1; justify-self: center }
+.tn-kure { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: pan-y }
+.tn-kure:active { cursor: grabbing }
+/* Kürenin çevresinde eğik bir yörünge, üstünde dolaşan küçük bir uydu */
+.tn-yorunge { position: absolute; inset: 4%; border-radius: 50%; border: 1.5px dashed var(--cizgi-koyu); transform: rotateX(68deg) rotateZ(0); animation: tn-yorunge 22s linear infinite; pointer-events: none }
+.tn-yorunge span { position: absolute; top: -6px; left: calc(50% - 6px); width: 12px; height: 12px; border-radius: 50%; background: var(--filiz); box-shadow: 0 0 0 4px rgba(140,193,82,.25), 0 0 16px var(--filiz) }
+.tn-logo-rozet { position: absolute; left: 2%; bottom: 6%; display: grid; place-items: center; width: 27%; aspect-ratio: 1; border-radius: 50%; background: #fff; border: 5px solid rgba(255,255,255,.7); background-clip: padding-box; box-shadow: 0 14px 30px rgba(10,29,53,.28), 0 0 0 1px var(--cizgi); overflow: hidden; animation: tn-suzul 6s ease-in-out infinite; pointer-events: none }
+.tn-logo-rozet img { width: 100%; height: 100%; object-fit: cover }
+@keyframes tn-yorunge { to { transform: rotateX(68deg) rotateZ(360deg) } }
+@keyframes tn-suzul { 50% { transform: translateY(-10px) } }
 
 /* "Nedir" bölümü */
 .tn-nedir-ic { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: clamp(28px, 6vw, 80px); align-items: center }
@@ -140,6 +139,6 @@ a.tn-ortak:hover { border-color: var(--vurgu); box-shadow: var(--golge-o) }
   .tn-dugmeler .dugme { flex: 1 1 100% }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tn-ulkeler, .tn-ulkeler g text { animation: none }
+  .tn-yorunge, .tn-logo-rozet { animation: none }
   .tn-kart:hover { transform: none }
 }
