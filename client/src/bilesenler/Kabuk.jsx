@@ -24,6 +24,7 @@ export default function Kabuk({ children, logolar = false }) {
    çıkış) hesap menüsündedir. */
 const MENU = [
   { anahtar: 'menu.pano', href: 'pano.html' },
+  { anahtar: 'menu.bulten', href: 'bulten.html' },
   { anahtar: 'menu.anasayfa', href: './', sayfa: 'index.html' },
   { anahtar: 'menu.takvim', href: 'takvim.html' },
   { anahtar: 'menu.ciktilar', href: 'ciktilar.html' },
@@ -43,6 +44,7 @@ const ZIYARETCI_MENU = [
   { anahtar: 'tanitim.menu.yol', href: '#yol-haritasi' },
   { anahtar: 'tanitim.menu.ortaklar', href: '#ortaklar' },
   { anahtar: 'tanitim.menu.iletisim', href: '#takip' },
+  { anahtar: 'menu.bulten', href: 'bulten.html' },
 ];
 
 /** Açılır panel: dışarı tıklayınca ve Esc ile kapanır. */
@@ -77,7 +79,10 @@ function UstBant() {
   }, [menuAcik]);
 
   const ogeler = MENU.filter(o => !o.koordinator || k?.koordinator);
-  const tanitim = !k && sayfa === 'index.html';
+  /* Bülten herkese açık: ziyaretçi orada da tanıtım menüsünü görür;
+     çapalar ana sayfaya döner. */
+  const tanitim = !k && (sayfa === 'index.html' || sayfa === 'bulten.html');
+  const ziyaretciAdres = h => (h.startsWith('#') && sayfa !== 'index.html' ? `./${h}` : h);
 
   return (
     <header className={`ust${menuAcik ? ' menu-acik' : ''}`}>
@@ -93,7 +98,8 @@ function UstBant() {
             <a key={o.href} href={o.href} aria-current={(o.sayfa || o.href) === sayfa ? 'page' : undefined}>{t(o.anahtar)}</a>
           ))}
           {tanitim && ZIYARETCI_MENU.map(o => (
-            <a key={o.href} href={o.href} onClick={() => setMenuAcik(false)}>{t(o.anahtar)}</a>
+            <a key={o.href} href={ziyaretciAdres(o.href)} aria-current={o.href === sayfa ? 'page' : undefined}
+              onClick={() => setMenuAcik(false)}>{t(o.anahtar)}</a>
           ))}
         </nav>
         <div className="ust-sag">

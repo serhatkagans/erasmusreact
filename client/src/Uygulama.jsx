@@ -10,6 +10,7 @@ const SAYFA = {
   'index.html': lazy(() => import('./sayfalar/Anasayfa.jsx')),
   'tanitim': lazy(() => import('./sayfalar/Tanitim.jsx')),
   'pano.html': lazy(() => import('./sayfalar/Pano.jsx')),
+  'bulten.html': lazy(() => import('./sayfalar/Bulten.jsx')),
   'takvim.html': lazy(() => import('./sayfalar/Takvim.jsx')),
   'ciktilar.html': lazy(() => import('./sayfalar/Ciktilar.jsx')),
   'ekip.html': lazy(() => import('./sayfalar/Ekip.jsx')),
