@@ -1168,7 +1168,7 @@
   "bulten.yazdir": "Yazdır",
   "bulten.notDuzenle": "Ay notunu düzenle",
   "bulten.notBaslik": "%{ay} notu",
-  "bulten.notIpucu": "Otomatik listelerin üstünde görünür. \"-\" ile başlayan satırlar madde olur; bağlantılar tıklanabilir.",
+  "bulten.notIpucu": "Otomatik listelerin üstünde görünür. \"-\" ile başlayan satırlar madde olur; bağlantılar tıklanabilir. Maddede bir sosyal medya hesabı (LinkedIn, Instagram, X, Facebook, YouTube) ya da e-posta adresi varsa kart olarak gösterilir.",
   "bulten.notYazan": "Ay notu: %{ad}, %{tarih}",
   "bulten.oneCikanlar": "Öne çıkanlar",
   "bulten.hedefler": "Hedefler",
@@ -1212,5 +1212,14 @@
   "bulten.hata.foto": "Fotoğraf bulunamadı.",
   "bulten.hata.fotoSayi": "Bir aya en çok 12 fotoğraf ya da video eklenebilir.",
   "bulten.hata.fotoTur": "Yalnızca JPG, PNG, WEBP, GIF (en çok 8 MB) ya da MP4, WEBM video (en çok 20 MB) yüklenebilir.",
-  "bulten.klasorDosya": "Proje klasörlerine %{n} dosya yüklendi"
+  "bulten.klasorDosya": "Proje klasörlerine %{n} dosya yüklendi",
+  "bulten.sosyal.eposta": "E-posta",
+  "bulten.medya.video": "Video",
+  "bulten.medya.afis": "Afiş",
+  "bulten.medya.foto": "Fotoğraf",
+  "bulten.aciklamaDuzenle": "Açıklamayı düzenle",
+  "bulten.aciklama.baslik": "Başlık",
+  "bulten.aciklama.baslikIpucu": "Sona parantez içinde süre ya da dil yazarsanız etiket olur: \"Tanıtım videosu (30 sn, İngilizce)\".",
+  "bulten.aciklama.tanitim": "Kısa tanıtım (bir iki cümle)",
+  "bulten.hata.aciklamaUzun": "Açıklama en çok 400 karakter olabilir."
 }

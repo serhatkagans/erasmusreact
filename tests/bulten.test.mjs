@@ -64,6 +64,10 @@ test('koordinatör not yazar ve fotoğraf ekler; ziyaretçi fotoğrafı görür'
   const parca = await anonim.iste(`/api/bulten/foto/${foto.veri.id}`, { headers: { range: 'bytes=0-7' } });
   assert.equal(parca.durum, 206);
   assert.equal(parca.veri.length, 8);
+  /* Açıklama: yalnızca koordinatör değiştirir. */
+  assert.equal((await anonim.iste(`/api/bulten/foto/${foto.veri.id}`, { method: 'PUT', body: { aciklama: 'x' } })).durum, 401);
+  assert.equal((await k.iste(`/api/bulten/foto/${foto.veri.id}`, { method: 'PUT', body: { aciklama: 'Afiş (A4)\r\nTanıtım' } })).durum, 200);
+  assert.equal((await anonim.iste(`/api/bulten?ay=${ay}`)).veri.fotolar[0].aciklama, 'Afiş (A4)\nTanıtım');
   assert.equal((await anonim.iste(`/api/bulten/foto/${foto.veri.id}`, { method: 'DELETE' })).durum, 401);
   assert.equal((await k.iste(`/api/bulten/foto/${foto.veri.id}`, { method: 'DELETE' })).durum, 200);
 });

@@ -4,6 +4,7 @@ import { useVeri } from '../kancalar.js';
 import { useKonum } from '../yonlendirme.js';
 import { useBaslik } from '../bilesenler/Kabuk.jsx';
 import Kutu, { bildir, onayla } from '../bilesenler/Kutu.jsx';
+import { SIMGE } from '../bilesenler/simgeler.jsx';
 import '../styles/bulten.css';
 
 /**
@@ -15,19 +16,82 @@ import '../styles/bulten.css';
 
 const ayAdi = ay => { const [y, a] = ay.split('-').map(Number); return ayYil(y, a - 1); };
 
-/** Koordinatör notu: "-" ya da "•" ile başlayan satırlar madde olur. */
+/**
+ * Koordinatör notu: "-" ya da "•" ile başlayan satırlar madde olur.
+ * İçinde sosyal medya hesabı ya da e-posta adresi geçen madde düz bağlantı
+ * yerine kart olarak çizilir (simge, platform, hesap adı); art arda gelen
+ * kartlar bir ızgarada toplanır.
+ */
 function NotMetni({ metin }) {
   const bloklar = [];
+  const ekle = (tur, oge) => {
+    const son = bloklar.at(-1);
+    if (son?.tur === tur) son.ogeler.push(oge); else bloklar.push({ tur, ogeler: [oge] });
+  };
   for (const satir of metin.split('\n')) {
     const madde = satir.match(/^\s*[-•*]\s+(.*)$/);
     if (madde) {
-      const son = bloklar.at(-1);
-      if (son?.tur === 'liste') son.ogeler.push(madde[1]); else bloklar.push({ tur: 'liste', ogeler: [madde[1]] });
-    } else if (satir.trim()) bloklar.push({ tur: 'p', metin: satir.trim() });
+      const hesap = sosyalHesap(madde[1]);
+      if (hesap) ekle('kart', hesap); else ekle('liste', madde[1]);
+    } else if (satir.trim()) bloklar.push({ tur: 'p', ogeler: [satir.trim()] });
   }
-  return bloklar.map((b, i) => (b.tur === 'liste'
-    ? <ul key={i}>{b.ogeler.map((o, j) => <li key={j}><Baglantili metin={o} /></li>)}</ul>
-    : <p key={i}><Baglantili metin={b.metin} /></p>));
+  return bloklar.map((b, i) => {
+    if (b.tur === 'kart') return <div key={i} className="bulten-sosyal">{b.ogeler.map((h, j) => <SosyalKart key={j} {...h} />)}</div>;
+    if (b.tur === 'liste') return <ul key={i}>{b.ogeler.map((o, j) => <li key={j}><Baglantili metin={o} /></li>)}</ul>;
+    return <p key={i}><Baglantili metin={b.ogeler[0]} /></p>;
+  });
+}
+
+/* Tanınan platformlar: alan adı → simge ve görünen ad. */
+const PLATFORM = [
+  [/(^|\.)linkedin\.com$/, 'linkedin', 'LinkedIn'],
+  [/(^|\.)instagram\.com$/, 'instagram', 'Instagram'],
+  [/(^|\.)(x|twitter)\.com$/, 'x', 'X'],
+  [/(^|\.)facebook\.com$/, 'facebook', 'Facebook'],
+  [/(^|\.)(youtube\.com|youtu\.be)$/, 'youtube', 'YouTube'],
+];
+
+/** Maddede tek bir sosyal hesap ya da e-posta geçiyorsa kart bilgisi; yoksa null. */
+function sosyalHesap(metin) {
+  const adresler = metin.match(ADRES) || [];
+  if (adresler.length !== 1) return null;
+  const adres = adresler[0];
+  /* Kartın alt satırı: maddenin adres dışındaki kısmı ("Instagram hesabı açıldı"). */
+  const aciklama = metin.replace(adres, '').replace(/[\s:–—-]+$/, '').trim();
+  if (!adres.startsWith('http')) {
+    return { tur: 'eposta', platform: t('bulten.sosyal.eposta'), hesap: adres, href: `mailto:${adres}`, aciklama };
+  }
+  let url;
+  try { url = new URL(adres); } catch { return null; }
+  const host = url.hostname.replace(/^www\./, '');
+  const bulunan = PLATFORM.find(([re]) => re.test(host));
+  if (!bulunan) return null;
+  const [, tur, platform] = bulunan;
+  const yol = url.pathname.split('/').filter(Boolean);
+  let hesap = yol[0] || host;
+  if (tur === 'linkedin') {
+    /* /in/<ad>-<kimlik> ya da /company/<ad>: sondaki kimlik kodu atılır. */
+    hesap = (yol[1] || yol[0] || host).replace(/-(?=[a-z0-9]*\d)[a-z0-9]{6,}$/i, '');
+  } else if (tur !== 'youtube' || !hesap.startsWith('@')) {
+    hesap = `@${hesap.replace(/^@/, '')}`;
+  }
+  return { tur, platform, hesap, href: url.href, aciklama };
+}
+
+function SosyalKart({ tur, platform, hesap, href, aciklama }) {
+  const eposta = tur === 'eposta';
+  return (
+    <a className={`bulten-sosyal-kart bulten-sosyal-${tur}`} href={href}
+      target={eposta ? undefined : '_blank'} rel="noopener noreferrer">
+      <span className="bulten-sosyal-simge" aria-hidden="true"><svg viewBox="0 0 24 24">{SIMGE[tur]}</svg></span>
+      <span className="bulten-sosyal-govde">
+        <strong>{platform}</strong>
+        <span className="bulten-sosyal-hesap" title={hesap}>{hesap}</span>
+        {aciklama && <span className="bulten-sosyal-not">{aciklama}</span>}
+      </span>
+      <span className="bulten-sosyal-ok" aria-hidden="true">↗</span>
+    </a>
+  );
 }
 
 /* Nottaki web ve e-posta adresleri tıklanabilir olur. */
@@ -233,6 +297,7 @@ export default function Bulten() {
 /** Ayın fotoğrafları. Koordinatör ekler ve siler; büyük hâli yeni sekmede açılır. */
 function Fotolar({ b, yenile }) {
   const [yukleniyor, setYukleniyor] = useState(false);
+  const [duzenlenen, setDuzenlenen] = useState(null);
   const yukle = async dosyalar => {
     setYukleniyor(true);
     try {
@@ -268,24 +333,113 @@ function Fotolar({ b, yenile }) {
           <ul className={`bulten-foto-izgara${b.fotolar.length === 1 ? ' tek' : ''}`}>
             {b.fotolar.map(f => (
               <li key={f.id}>
-                <figure>
-                  {f.tur.startsWith('video/')
-                    ? <video src={`api/bulten/foto/${f.id}`} controls preload="metadata" playsInline aria-label={f.aciklama || f.ad} />
-                    : (
-                      <a href={`api/bulten/foto/${f.id}`} target="_blank" rel="noopener">
-                        <img src={`api/bulten/foto/${f.id}`} alt={f.aciklama || f.ad} loading="lazy" />
-                      </a>
-                    )}
-                  {f.aciklama && <figcaption>{f.aciklama}</figcaption>}
-                </figure>
+                <MedyaKart f={f} />
                 {b.duzenleyebilir && (
-                  <button type="button" className="bulten-foto-sil" aria-label={t('bulten.fotoSil')} onClick={() => sil(f)}>×</button>
+                  <span className="bulten-foto-eylem">
+                    <button type="button" aria-label={t('bulten.aciklamaDuzenle')} title={t('bulten.aciklamaDuzenle')} onClick={() => setDuzenlenen(f)}>✎</button>
+                    <button type="button" className="bulten-foto-sil" aria-label={t('bulten.fotoSil')} title={t('bulten.fotoSil')} onClick={() => sil(f)}>×</button>
+                  </span>
                 )}
               </li>
             ))}
           </ul>
         )}
+      {b.duzenleyebilir && <AciklamaKutusu f={duzenlenen} kapat={() => setDuzenlenen(null)} yenile={yenile} />}
     </section>
+  );
+}
+
+/**
+ * Açıklama iki parçadır: ilk satır başlık, alttaki satırlar kısa tanıtım.
+ * Başlığın sonundaki parantez etiket olur: "Tanıtım videosu (30 sn,
+ * İngilizce)" → başlık "Tanıtım videosu", etiketler "30 sn", "İngilizce".
+ */
+function aciklamaParcala(metin) {
+  const [ilk = '', ...kalan] = metin.split('\n');
+  const parantez = ilk.match(/\(([^)]+)\)\s*$/)?.[1];
+  return {
+    baslik: ilk.replace(/\s*\([^)]+\)\s*$/, '').trim(),
+    etiketler: parantez ? parantez.split(/\s*,\s*/).filter(Boolean) : [],
+    tanitim: kalan.join(' ').trim(),
+  };
+}
+
+const SURE = /^\d+\s*(sn|sa|dk|saniye|dakika)\b/i;
+
+function MedyaKart({ f }) {
+  const video = f.tur.startsWith('video/');
+  const tur = video ? 'video' : /afi[şs]/i.test(`${f.aciklama} ${f.ad}`) ? 'afis' : 'foto';
+  const { baslik, etiketler, tanitim } = aciklamaParcala(f.aciklama || '');
+  const adres = `api/bulten/foto/${f.id}`;
+  const etiket = baslik || f.ad;
+  return (
+    <figure className={`bulten-medya bulten-medya-${tur}`}>
+      <div className="bulten-medya-cerceve">
+        {video
+          ? <video src={adres} controls preload="metadata" playsInline aria-label={etiket} />
+          : <a href={adres} target="_blank" rel="noopener"><img src={adres} alt={etiket} loading="lazy" /></a>}
+        <span className="bulten-medya-tur">
+          <svg viewBox="0 0 24 24" aria-hidden="true">{video
+            ? <path d="M8 5.5v13l10.5-6.5z" />
+            : tur === 'afis'
+              ? <><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></>
+              : <><rect x="3" y="6" width="18" height="14" rx="2" /><circle cx="12" cy="13" r="3.5" /><path d="M8 6l1.5-2.5h5L16 6" /></>}</svg>
+          {t(`bulten.medya.${tur}`)}
+        </span>
+      </div>
+      {(baslik || tanitim) && (
+        <figcaption>
+          {baslik && <strong>{baslik}</strong>}
+          {etiketler.length > 0 && (
+            <span className="bulten-medya-etiketler">
+              {etiketler.map((e, i) => (
+                <span key={i} className={`bulten-etiket${SURE.test(e) ? ' bulten-etiket-sure' : ''}`}>{e}</span>
+              ))}
+            </span>
+          )}
+          {tanitim && <span className="bulten-medya-tanitim">{tanitim}</span>}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
+function AciklamaKutusu({ f, kapat, yenile }) {
+  const [hata, setHata] = useState('');
+  return (
+    <Kutu acik={!!f} onKapat={() => { setHata(''); kapat(); }} koru id="bulten-aciklama-kutu">
+      {f && (
+        <form className="kutu-ic" onSubmit={async o => {
+          o.preventDefault();
+          const k = o.currentTarget;
+          const aciklama = [k.baslik.value.trim(), k.tanitim.value.trim()].filter(Boolean).join('\n');
+          setHata('');
+          try {
+            await iste(`api/bulten/foto/${f.id}`, { method: 'PUT', body: JSON.stringify({ aciklama }) });
+            kapat();
+            bildir(t('genel.kaydedildi'));
+            yenile();
+          } catch (err) { setHata(err.message); }
+        }}>
+          <div className="kutu-ust">
+            <h2>{t('bulten.aciklamaDuzenle')}</h2>
+            <button type="button" className="kapat" data-kapat aria-label={t('genel.kapat')}>×</button>
+          </div>
+          <div className="form-izgara">
+            <label className="alan form-tam"><span>{t('bulten.aciklama.baslik')}</span>
+              <input name="baslik" maxLength={120} defaultValue={(f.aciklama || '').split('\n')[0]} /></label>
+            <p className="form-tam alan-ipucu">{t('bulten.aciklama.baslikIpucu')}</p>
+            <label className="alan form-tam"><span>{t('bulten.aciklama.tanitim')}</span>
+              <textarea name="tanitim" rows={3} maxLength={270} defaultValue={(f.aciklama || '').split('\n').slice(1).join(' ')} /></label>
+          </div>
+          <p className="hata" role="alert">{hata}</p>
+          <div className="kutu-eylem">
+            <button type="submit" className="dugme dugme-birincil">{t('genel.kaydet')}</button>
+            <button type="button" className="dugme dugme-ikincil" data-kapat>{t('genel.vazgec')}</button>
+          </div>
+        </form>
+      )}
+    </Kutu>
   );
 }
 

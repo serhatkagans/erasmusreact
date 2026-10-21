@@ -1168,7 +1168,7 @@
   "bulten.yazdir": "Print",
   "bulten.notDuzenle": "Edit month note",
   "bulten.notBaslik": "Note for %{ay}",
-  "bulten.notIpucu": "Shown above the automatic lists. Lines starting with \"-\" become bullets; links are clickable.",
+  "bulten.notIpucu": "Shown above the automatic lists. Lines starting with \"-\" become bullets; links are clickable. A bullet with a social media account (LinkedIn, Instagram, X, Facebook, YouTube) or an email address is shown as a card.",
   "bulten.notYazan": "Month note: %{ad}, %{tarih}",
   "bulten.oneCikanlar": "Highlights",
   "bulten.hedefler": "Goals",
@@ -1212,5 +1212,14 @@
   "bulten.hata.foto": "Photo not found.",
   "bulten.hata.fotoSayi": "A month can have at most 12 photos or videos.",
   "bulten.hata.fotoTur": "Only JPG, PNG, WEBP, GIF (up to 8 MB) or MP4, WEBM video (up to 20 MB) can be uploaded.",
-  "bulten.klasorDosya": "%{n} files uploaded to the project folders"
+  "bulten.klasorDosya": "%{n} files uploaded to the project folders",
+  "bulten.sosyal.eposta": "Email",
+  "bulten.medya.video": "Video",
+  "bulten.medya.afis": "Poster",
+  "bulten.medya.foto": "Photo",
+  "bulten.aciklamaDuzenle": "Edit caption",
+  "bulten.aciklama.baslik": "Title",
+  "bulten.aciklama.baslikIpucu": "Length or language in brackets at the end becomes a tag: \"Promo video (30 sec, English)\".",
+  "bulten.aciklama.tanitim": "Short description (a sentence or two)",
+  "bulten.hata.aciklamaUzun": "The caption can be at most 400 characters."
 }

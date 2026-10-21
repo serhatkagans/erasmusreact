@@ -9,6 +9,7 @@ import { CIKTILAR } from '../lib/cikti.mjs';
  *   PUT /api/bulten/2026-10      koordinatör notu: { yapilanlar, yapilacaklar }
  *   POST /api/bulten/2026-10/foto   ayın fotoğrafı (koordinatör; gövde: görsel)
  *   GET|DELETE /api/bulten/foto/:id
+ *   PUT /api/bulten/foto/:id     açıklama: { aciklama } (ilk satır başlık, altı tanıtım)
  *
  * Listeler TÜRETİLİR (panodaki gibi): görev tamamlanınca, dosya yüklenince,
  * faaliyet "tamamlandı" yapılınca bülten kendiliğinden dolar. Elle yazılan
@@ -62,6 +63,7 @@ export function ayCoz(metin, aylar = bultenAylari()) {
 
 const NOT_SINIRI = 4000;
 const AYLIK_FOTO = 12;
+const ACIKLAMA_SINIRI = 400;
 
 /* Ayın fotoğrafları kısa tanıtım videosu da alır (ör. 30 saniyelik reels). */
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
@@ -94,6 +96,14 @@ export function bultenRoutes({ db }) {
       if (req.method === 'DELETE') {
         if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
         await db.run('DELETE FROM bulten_foto WHERE id=?', [id]);
+        return send(res, 200, { ok: true });
+      }
+      if (req.method === 'PUT') {
+        if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+        const g = await body(req);
+        const aciklama = typeof g.aciklama === 'string' ? g.aciklama.replace(/\r\n/g, '\n').trim() : '';
+        if (aciklama.length > ACIKLAMA_SINIRI) throw new ValidationError('bulten.hata.aciklamaUzun');
+        await db.run('UPDATE bulten_foto SET aciklama=? WHERE id=?', [aciklama, id]);
         return send(res, 200, { ok: true });
       }
       if (!['GET', 'HEAD'].includes(req.method)) return send(res, 405, { error: 'genel.hata' });
@@ -130,7 +140,7 @@ export function bultenRoutes({ db }) {
       if (PHOTO_TYPES[tur] && veri.length > MAX_PHOTO_BYTES) throw new ValidationError('bulten.hata.fotoTur');
       const ad = requireText(decodeURIComponent(req.headers['x-dosya-adi'] || ''), 'Dosya adı', { max: 200, required: false })
         || `medya.${MEDYA[tur]}`;
-      const aciklama = requireText(decodeURIComponent(req.headers['x-aciklama'] || ''), 'Açıklama', { max: 300, required: false }) || '';
+      const aciklama = requireText(decodeURIComponent(req.headers['x-aciklama'] || ''), 'Açıklama', { max: ACIKLAMA_SINIRI, required: false }) || '';
       const id = await db.insert(
         'INSERT INTO bulten_foto (ay,ad,aciklama,tur,boyut,veri,yukleyen,created) VALUES (?,?,?,?,?,?,?,?)',
         [ay, ad, aciklama, tur, veri.length, veri, user.id, new Date().toISOString()]);
