@@ -1,33 +1,114 @@
-/* Aylık bülten (sayfalar/Bulten.jsx). Pano kutularının üstüne kurulur:
-   beyaz gövde, renk yalnızca durum rozetlerinde ve not kenarında. */
+/* Aylık bülten (sayfalar/Bulten.jsx). Pano gibi değil, basılı bir bülten
+   gibi okunur: zeminin üstünde tek bir kâğıt; künye (ad, sayı, tarih
+   şeridi), manşet, yan sütunda rakamlar ve içindekiler, sütun çizgisiyle
+   ayrılan bölümler, en altta AB künyesi. Başlıklar serif (sistem yığını,
+   dış font yüklenmez: CSP 'self'); liste satırları panoyla aynı kalır.
+   Renk yalnızca durum rozetlerinde, üst etiketlerde ve çizgilerde. */
 
-.bulten-arac { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px }
+.bulten-sayfa { --serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif; --kagit-cizgi: var(--murekkep) }
+
+/* --- Araç çubuğu (kâğıdın üstünde, yazdırılmaz) --- */
+.bulten-arac-bas { padding: clamp(18px, 2.4vw, 28px) 0 14px }
+.bulten-arac { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; max-width: 1080px; margin: 0 auto }
 .bulten-aylar { margin-left: 0 }
 .bulten-aylar a { display: block; padding: 9px 15px; font-size: .9rem; font-weight: 650; color: var(--soluk); background: var(--kart); text-decoration: none }
 .bulten-aylar a + a { border-left: 1px solid var(--cizgi) }
 .bulten-aylar a[aria-current="page"] { background: var(--vurgu); color: #fff }
 .bulten-aylar a:not([aria-current]):hover { color: var(--murekkep) }
 .bulten-eylem { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto }
+.bulten-yukleniyor { font-family: var(--serif); max-width: 1080px; margin: 0 auto }
 
-.bulten-rakamlar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px }
-.bulten-rakam { display: grid; gap: 2px; padding: 14px 16px; border: 1px solid var(--cizgi); border-radius: 14px; background: var(--kart) }
-.bulten-rakam strong { font-size: 1.7rem; line-height: 1.1; color: var(--murekkep); font-variant-numeric: tabular-nums }
-.bulten-rakam span { font-size: .84rem; color: var(--soluk) }
+/* --- Kâğıt --- */
+.bulten { padding-bottom: 48px }
+.bulten-kagit { max-width: 1080px; margin: 0 auto; padding: clamp(20px, 4vw, 52px) clamp(16px, 4.5vw, 60px) clamp(24px, 4vw, 44px);
+  background: var(--kart); border: 1px solid var(--cizgi); border-radius: 4px; box-shadow: var(--golge-b) }
 
-.bulten-izgara { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start }
-.bulten-yapilan { border-top: 4px solid var(--yesil) }
-.bulten-yapilacak { border-top: 4px solid var(--amber) }
-.bulten-sonraki { margin-top: 16px }
+.bulten-ust { display: block; margin-bottom: 6px; font-size: .74rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--vurgu) }
 
-.bulten-kume + .bulten-kume, .bulten-not + .bulten-kume { margin-top: 14px }
-.bulten-kume h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 2px; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--soluk) }
+/* Künye: üst ince satır, büyük ad, alt başlık, çift çizgili tarih şeridi. */
+.bulten-kunye { text-align: center }
+.bulten-kunye-ust { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--cizgi-koyu);
+  font-size: .74rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--soluk) }
+.bulten-ad { display: flex; align-items: center; justify-content: center; gap: clamp(10px, 2vw, 20px); margin: clamp(16px, 2.6vw, 28px) 0 6px;
+  font-family: var(--serif); font-size: clamp(1.4rem, 6vw, 4.6rem); font-weight: 700; line-height: 1; letter-spacing: -.01em; color: var(--mavi) }
+.bulten-ad img { width: clamp(34px, 7vw, 76px); height: auto; flex: none }
+.bulten-ad span { min-width: 0 }
+.bulten-alt-ad { margin: 8px auto 18px; max-width: 60ch; font-family: var(--serif); font-style: italic; font-size: clamp(.95rem, .9rem + .3vw, 1.1rem); color: var(--metin) }
+.bulten-tarih-serit { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 9px 0;
+  border-top: 3px double var(--kagit-cizgi); border-bottom: 3px double var(--kagit-cizgi);
+  font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--murekkep) }
+.bulten-tarih-serit > :first-child { text-align: left }
+.bulten-tarih-serit > :last-child { text-align: right }
+.bulten-tarih-serit strong { font-family: var(--serif); font-size: 1.05rem; letter-spacing: .04em; text-transform: none }
+
+/* Manşet + yan sütun. */
+.bulten-giris-satir { display: grid; grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr); gap: clamp(20px, 3vw, 40px); padding: clamp(22px, 3vw, 34px) 0;
+  border-bottom: 1px solid var(--cizgi-koyu) }
+.bulten-manset h2 { margin: 0 0 12px; font-family: var(--serif); font-size: clamp(1.6rem, 1.1rem + 1.8vw, 2.5rem); line-height: 1.12; color: var(--murekkep); text-wrap: balance }
+.bulten-spot { margin: 0 0 16px; max-width: none; font-family: var(--serif); font-style: italic; font-size: 1.05rem; line-height: 1.55; color: var(--metin) }
+.bulten-yazi { font-family: var(--serif); font-size: 1.06rem; line-height: 1.7; color: var(--murekkep) }
+.bulten-yazi p { margin: 0 0 12px; max-width: none }
+.bulten-yazi ul { margin: 0 0 12px; padding-left: 0; list-style: none }
+.bulten-yazi li { position: relative; padding: 6px 0 6px 22px; border-bottom: 1px dotted var(--cizgi-koyu) }
+.bulten-yazi li:last-child { border-bottom: 0 }
+.bulten-yazi li::before { content: ""; position: absolute; left: 4px; top: 1.05em; width: 7px; height: 7px; background: var(--vurgu); transform: rotate(45deg) }
+.bulten-yazi > :first-child:is(p)::first-letter { float: left; margin: 6px 10px 0 0; font-size: 3.4em; line-height: .8; font-weight: 700; color: var(--vurgu) }
+.bulten-yazi > :last-child { margin-bottom: 0 }
+.bulten-yazi .bulten-sosyal { font-family: var(--yazi); font-size: 1rem; line-height: 1.4 }
+
+.bulten-yan { padding-left: clamp(20px, 3vw, 40px); border-left: 1px solid var(--cizgi-koyu) }
+.bulten-rakamlar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 4px 0 22px; border-top: 2px solid var(--kagit-cizgi) }
+.bulten-rakam { display: grid; gap: 4px; align-content: start; padding: 12px 10px 12px 0; border-bottom: 1px solid var(--cizgi) }
+.bulten-rakam:nth-child(even) { padding: 12px 0 12px 12px; border-left: 1px solid var(--cizgi) }
+.bulten-rakam strong { font-family: var(--serif); font-size: 2.3rem; font-weight: 700; line-height: 1; color: var(--mavi); font-variant-numeric: lining-nums tabular-nums }
+.bulten-rakam span { font-size: .8rem; line-height: 1.35; color: var(--soluk) }
+
+.bulten-icindekiler ol { margin: 4px 0 0; padding: 0; list-style: none; counter-reset: icerik; border-top: 2px solid var(--kagit-cizgi) }
+.bulten-icindekiler li { counter-increment: icerik; border-bottom: 1px solid var(--cizgi) }
+.bulten-icindekiler a { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; font-size: .9rem; font-weight: 600; color: var(--murekkep); text-decoration: none }
+.bulten-icindekiler a::before { content: counter(icerik, decimal-leading-zero); font-family: var(--serif); font-weight: 700; color: var(--vurgu) }
+.bulten-icindekiler a:hover { color: var(--vurgu) }
+
+/* Bölümler: başlığın altında kalın + ince çizgi. */
+.bulten-bolum { padding-top: clamp(22px, 3vw, 34px); scroll-margin-top: 140px }
+.bulten-bolum-bas { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--kagit-cizgi);
+  box-shadow: 0 3px 0 -2px var(--kart), 0 4px 0 -2px var(--cizgi-koyu) }
+.bulten-bolum-bas > div { min-width: 0 }
+.bulten-bolum-bas h2 { margin: 0; font-family: var(--serif); font-size: clamp(1.3rem, 1.1rem + .7vw, 1.7rem); line-height: 1.2; color: var(--murekkep) }
+.bulten-bolum + .bulten-bolum, .bulten-fotolar + .bulten-izgara { margin-top: 6px }
+
+.bulten-izgara { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 clamp(22px, 3vw, 40px); align-items: start; position: relative }
+.bulten-izgara > .bulten-yapilacak { padding-left: clamp(22px, 3vw, 40px); border-left: 1px solid var(--cizgi-koyu) }
+.bulten-izgara > .bulten-yapilacak { margin-top: 0; align-self: stretch }
+.bulten-yapilan .bulten-ust { color: var(--yesil) }
+.bulten-yapilacak .bulten-ust { color: var(--amber) }
+
+.bulten-sonraki { margin-top: 28px; padding: clamp(18px, 2.4vw, 26px); border: 1px solid var(--cizgi-koyu); outline: 1px solid var(--cizgi-koyu); outline-offset: 3px; background: var(--zemin) }
+.bulten-sonraki .bulten-bolum-bas { box-shadow: none }
+.bulten-sonraki-izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 0 28px }
+.bulten-sonraki-izgara .bulten-kume + .bulten-kume { margin-top: 0 }
+
+.bulten-kume + .bulten-kume, .bulten-not + .bulten-kume { margin-top: 18px }
+.bulten-kume h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--soluk) }
+.bulten-kume h3::after { content: ""; flex: 1; height: 1px; background: var(--cizgi) }
 .bulten-kume-sayi { font-weight: 800; color: var(--murekkep) }
+.bulten-kume .pano-liste > li + li { border-top: 1px dotted var(--cizgi-koyu) }
+.bulten-kume .pano-satir-govde strong { font-family: var(--serif); font-size: 1rem; font-weight: 700 }
 
-.bulten-not { padding: 12px 14px; border-left: 3px solid var(--vurgu); border-radius: 0 10px 10px 0; background: var(--zemin); font-size: .93rem }
-.bulten-not-bas { display: block; margin-bottom: 4px; font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--vurgu) }
+.bulten-not { margin-bottom: 4px; padding: 12px 16px; border-left: 3px solid var(--amber); background: var(--zemin); font-family: var(--serif); font-size: .98rem; line-height: 1.6 }
+.bulten-not-bas { display: block; margin-bottom: 4px; font-family: var(--yazi); font-size: .74rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--amber) }
 .bulten-not p { margin: 0 0 6px; max-width: none }
 .bulten-not ul { margin: 0 0 6px; padding-left: 20px }
 .bulten-not > :last-child { margin-bottom: 0 }
+.bulten-not .bulten-sosyal { font-family: var(--yazi) }
+
+/* Kolofon: imza, AB logosu ve feragat, son satır. */
+.bulten-kolofon { margin-top: 36px; padding-top: 16px; border-top: 3px double var(--kagit-cizgi) }
+.bulten-imza { margin: 0 0 14px; font-family: var(--serif); font-style: italic; font-size: .92rem; color: var(--metin) }
+.bulten-kolofon-ab { display: flex; align-items: center; gap: 18px }
+.bulten-kolofon-ab img { flex: none; width: 149px; height: auto }
+.bulten-kolofon-ab p { margin: 0; max-width: none; font-size: .74rem; line-height: 1.5; color: var(--soluk) }
+.bulten-kolofon-son { margin: 14px 0 0; text-align: center; font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--soluk) }
 
 /* Nottaki sosyal medya ve e-posta kartları. Renk yalnızca platform
    simgesinde; kart gövdesi beyaz kalır. */
@@ -55,53 +136,67 @@
 .bulten-sosyal-eposta .bulten-sosyal-simge { background: linear-gradient(135deg, #ea4335, #c5221f) }
 
 .pano-rozet.bulten-rozet-yesil { background: rgba(31,127,85,.12); color: #145f40 }
-.bulten-imza { margin: 14px 0 0; font-size: .82rem; color: var(--soluk) }
 
-.bulten-fotolar { margin-bottom: 16px }
+/* Ayın kareleri. */
 .bulten-eylem-dugme { margin-left: auto; cursor: pointer }
-.bulten-foto-izgara { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) }
+.bulten-foto-izgara { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) }
 .bulten-foto-izgara.tek { grid-template-columns: minmax(0, 760px) }
 .bulten-foto-izgara li { position: relative }
 .bulten-foto-izgara figure { margin: 0 }
 /* Afiş dikey, video 9:16, fotoğraf yatay: hepsi aynı yükseklikte, kırpılmadan. */
-.bulten-foto-izgara img, .bulten-foto-izgara video { display: block; width: 100%; height: 340px; object-fit: contain; border-radius: 12px; border: 1px solid var(--cizgi); background: var(--zemin) }
+.bulten-foto-izgara img, .bulten-foto-izgara video { display: block; width: 100%; height: 340px; object-fit: contain; border-radius: 2px; border: 1px solid var(--cizgi); background: var(--zemin) }
 .bulten-foto-izgara.tek img { height: auto; max-height: 520px; object-fit: cover }
 .bulten-medya { margin: 0; display: grid; gap: 8px }
-.bulten-medya-cerceve { position: relative; border-radius: 14px; overflow: hidden; transition: transform .15s, box-shadow .15s }
+.bulten-medya-cerceve { position: relative; border-radius: 2px; overflow: hidden; transition: transform .15s, box-shadow .15s }
 .bulten-medya:hover .bulten-medya-cerceve { transform: translateY(-2px); box-shadow: var(--golge-o) }
-.bulten-medya-cerceve img, .bulten-medya-cerceve video { border-radius: 14px }
 .bulten-medya-tur { position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 8px;
   border-radius: 999px; background: rgba(15,31,51,.78); color: #fff; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; pointer-events: none }
 .bulten-medya-tur svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round }
 .bulten-medya-video .bulten-medya-tur { background: #c5221f }
 .bulten-medya-video .bulten-medya-tur svg { fill: currentColor; stroke: none }
 .bulten-medya-afis .bulten-medya-tur { background: var(--vurgu) }
-.bulten-medya figcaption { display: grid; gap: 5px; padding: 0 2px }
-.bulten-medya figcaption strong { font-size: .95rem; line-height: 1.3; color: var(--murekkep) }
+.bulten-medya figcaption { display: grid; gap: 5px; padding: 2px 2px 0; border-top: 2px solid var(--kagit-cizgi); padding-top: 8px }
+.bulten-medya figcaption strong { font-family: var(--serif); font-size: 1rem; line-height: 1.3; color: var(--murekkep) }
 .bulten-medya-etiketler { display: flex; flex-wrap: wrap; gap: 5px }
 .bulten-etiket { padding: 2px 9px; border-radius: 999px; font-size: .74rem; font-weight: 750; background: rgba(var(--vurgu-rgb), .1); color: var(--vurgu-koyu) }
 .bulten-etiket-sure { background: var(--zemin); color: var(--metin); border: 1px solid var(--cizgi) }
-.bulten-medya-tanitim { font-size: .84rem; line-height: 1.45; color: var(--soluk) }
+.bulten-medya-tanitim { font-family: var(--serif); font-style: italic; font-size: .88rem; line-height: 1.45; color: var(--metin) }
 .bulten-foto-eylem { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px }
 .bulten-foto-eylem button { width: 30px; height: 30px; border: 0; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 1rem; line-height: 1; cursor: pointer }
 .bulten-foto-eylem button:hover { background: var(--vurgu) }
 .bulten-foto-eylem .bulten-foto-sil:hover { background: #8f1e18 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
+  .bulten-giris-satir { grid-template-columns: minmax(0, 1fr) }
+  .bulten-yan { padding: 22px 0 0; border-left: 0; border-top: 1px solid var(--cizgi-koyu) }
+  .bulten-rakamlar { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+  .bulten-rakam, .bulten-rakam:nth-child(even) { padding: 12px 10px; border-left: 1px solid var(--cizgi) }
+  .bulten-rakam:first-child { border-left: 0; padding-left: 0 }
   .bulten-izgara { grid-template-columns: minmax(0, 1fr) }
-  .bulten-rakamlar { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .bulten-izgara > .bulten-yapilacak { padding-left: 0; border-left: 0 }
 }
-@media (max-width: 520px) {
+@media (max-width: 560px) {
   .bulten-arac { align-items: stretch }
   .bulten-aylar { width: 100% }
   .bulten-aylar a { flex: 1; text-align: center }
   .bulten-eylem { margin-left: 0 }
+  .bulten-kagit { border-left: 0; border-right: 0; box-shadow: none }
+  .bulten-kunye-ust { justify-content: center }
+  .bulten-kunye-ust > :first-child { display: none }
+  .bulten-tarih-serit { grid-template-columns: 1fr; gap: 2px; text-align: center }
+  .bulten-tarih-serit > :first-child, .bulten-tarih-serit > :last-child { text-align: center }
+  .bulten-rakamlar { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .bulten-rakam:nth-child(3) { border-left: 0; padding-left: 0 }
+  .bulten-kolofon-ab { flex-direction: column; align-items: flex-start }
 }
 
-/* Yazdırma: üst bant, menü ve düğmeler düşer; bülten kâğıda sığar. */
+/* Yazdırma: üst bant, menü ve düğmeler düşer; kâğıt sayfanın kendisi olur. */
 @media print {
-  body:has(.bulten) .ust, body:has(.bulten) .atla, .bulten-arac, .bulten-eylem-dugme, .bulten-foto-eylem { display: none !important }
+  body:has(.bulten) .ust, body:has(.bulten) .atla, body:has(.bulten) .alt, .bulten-arac-bas, .bulten-eylem-dugme, .bulten-foto-eylem, .bulten-icindekiler { display: none !important }
+  .bulten { padding: 0 }
+  .bulten-kagit { max-width: none; padding: 0; border: 0; box-shadow: none }
+  .bulten-giris-satir { grid-template-columns: 2fr 1fr }
   .bulten-izgara { grid-template-columns: 1fr 1fr }
-  .bulten .pano-kutu, .bulten-rakam { box-shadow: none; break-inside: avoid }
+  .bulten-bolum, .bulten-rakam, .bulten-medya, .pano-satir { break-inside: avoid }
   .bulten .pano-satir { padding: 6px 2px }
 }

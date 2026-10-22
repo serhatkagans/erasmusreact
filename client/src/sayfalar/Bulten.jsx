@@ -15,6 +15,28 @@ import '../styles/bulten.css';
  */
 
 const ayAdi = ay => { const [y, a] = ay.split('-').map(Number); return ayYil(y, a - 1); };
+/** İki ay arasındaki fark ("2026-10", "2027-01" → 3). */
+const ayFark = (a, b) => {
+  const [y1, m1] = a.split('-').map(Number);
+  const [y2, m2] = b.split('-').map(Number);
+  return (y2 - y1) * 12 + m2 - m1;
+};
+
+/** Gazete bölümü: küçük üst etiket, serif başlık, altında çift çizgi. */
+function Bolum({ id, ust, baslik, sinif = '', sag, children }) {
+  return (
+    <section className={`bulten-bolum ${sinif}`} aria-labelledby={id} id={`${id}-bolum`}>
+      <header className="bulten-bolum-bas">
+        <div>
+          {ust && <span className="bulten-ust">{ust}</span>}
+          <h2 id={id}>{baslik}</h2>
+        </div>
+        {sag}
+      </header>
+      {children}
+    </section>
+  );
+}
 
 /**
  * Koordinatör notu: "-" ya da "•" ile başlayan satırlar madde olur.
@@ -125,7 +147,7 @@ function Kume({ baslik, satirlar }) {
   if (!satirlar.length) return null;
   return (
     <div className="bulten-kume">
-      <h3>{t(baslik)} <span className="bulten-kume-sayi">{satirlar.length}</span></h3>
+      <h3><span>{t(baslik)}</span> <span className="bulten-kume-sayi">{satirlar.length}</span></h3>
       <ul className="pano-liste">{satirlar.map((s, i) => <Satir key={i} {...s} />)}</ul>
     </div>
   );
@@ -209,35 +231,79 @@ export default function Bulten() {
     const dosyaSayi = b.klasorDosyaSayi + y.faaliyetDosya.length + y.fotograf + y.ciktiDosya;
     const yanitSayi = y.formYanit.reduce((n, f) => n + f.n, 0);
 
+    /* Sayı numarası ilk aydan sayılır; proje ayı başlangıçtan (hazırlık ayı 0). */
+    const sayiNo = b.aylar.length - b.aylar.indexOf(b.ay);
+    const bas = durum.proje?.start?.slice(0, 7);
+    const son = durum.proje?.end?.slice(0, 7);
+    const projeAy = bas ? ayFark(bas, b.ay) + 1 : 1;
+    const toplamAy = bas && son ? ayFark(bas, son) + 1 : 0;
+    const medyaVar = b.fotolar.length > 0 || b.duzenleyebilir;
+    const icerik = [
+      b.not.yapilanlar && ['bulten-manset', 'bulten.oneCikanlar'],
+      medyaVar && ['bulten-foto-bas', 'bulten.fotolar'],
+      ['bulten-yapilan', 'bulten.yapilanlar'],
+      ['bulten-yapilacak', b.gecmis ? 'bulten.kalanlar' : 'bulten.yapilacaklar'],
+      ['bulten-sonraki', 'bulten.sonraki', { ay: ayAdi(b.sonrakiAy) }],
+    ].filter(Boolean);
+
     govde = (
-      <>
-        <div className="bulten-rakamlar">
-          <Rakam n={y.faaliyet.length + y.gorev.length + y.cikti.length} metin="bulten.r.tamamlanan" />
-          <Rakam n={dosyaSayi} metin="bulten.r.dosya" />
-          <Rakam n={yanitSayi} metin="bulten.r.yanit" />
-          <Rakam n={yapilacakSayi} metin={b.gecmis ? 'bulten.r.kalan' : 'bulten.r.yapilacak'} />
+      <article className="bulten-kagit">
+        <header className="bulten-kunye">
+          <div className="bulten-kunye-ust">
+            <span>Erasmus+ · KA220-YOU</span>
+            <span>{t('bulten.ust')}</span>
+          </div>
+          <h1 className="bulten-ad">
+            <img src="logo.png" alt="" />
+            <span>{durum.proje?.acronym || t('site.ad')}</span>
+          </h1>
+          <p className="bulten-alt-ad">{t('bulten.altAd')}</p>
+          <div className="bulten-tarih-serit">
+            <span>{t('bulten.sayi', { n: sayiNo })}</span>
+            <strong>{ayAdi(b.ay)}</strong>
+            <span>{projeAy >= 1 && toplamAy ? t('bulten.projeAyi', { n: projeAy, toplam: toplamAy }) : t('bulten.hazirlikSayisi')}</span>
+          </div>
+        </header>
+
+        <div className="bulten-giris-satir">
+          <div className="bulten-manset" id="bulten-manset-bolum">
+            <span className="bulten-ust">{t(b.not.yapilanlar ? 'bulten.oneCikanlar' : 'bulten.editorden')}</span>
+            <h2 id="bulten-manset">{t('bulten.mansetBaslik', { ay: ayAdi(b.ay) })}</h2>
+            <p className="bulten-spot">{t(projeAy === 1 ? 'bulten.giris.baslangic' : projeAy < 1 ? 'bulten.giris.hazirlik' : 'bulten.giris')}</p>
+            {b.not.yapilanlar && <div className="bulten-yazi"><NotMetni metin={b.not.yapilanlar} /></div>}
+          </div>
+
+          <aside className="bulten-yan" aria-labelledby="bulten-rakam-bas">
+            <span className="bulten-ust" id="bulten-rakam-bas">{t('bulten.rakamlarla')}</span>
+            <div className="bulten-rakamlar">
+              <Rakam n={y.faaliyet.length + y.gorev.length + y.cikti.length} metin="bulten.r.tamamlanan" />
+              <Rakam n={dosyaSayi} metin="bulten.r.dosya" />
+              <Rakam n={yanitSayi} metin="bulten.r.yanit" />
+              <Rakam n={yapilacakSayi} metin={b.gecmis ? 'bulten.r.kalan' : 'bulten.r.yapilacak'} />
+            </div>
+            <nav className="bulten-icindekiler" aria-labelledby="bulten-icindekiler-bas">
+              <span className="bulten-ust" id="bulten-icindekiler-bas">{t('bulten.icindekiler')}</span>
+              <ol>
+                {icerik.map(([id, anahtar, d]) => <li key={id}><a href={`#${id}-bolum`}>{t(anahtar, d)}</a></li>)}
+              </ol>
+            </nav>
+          </aside>
         </div>
 
-        {(b.fotolar.length > 0 || b.duzenleyebilir) && <Fotolar b={b} yenile={yenile} />}
+        {medyaVar && <Fotolar b={b} yenile={yenile} />}
 
         <div className="bulten-izgara">
-          <section className="pano-kutu bulten-sutun bulten-yapilan" aria-labelledby="bulten-yapilan">
-            <div className="pano-kutu-bas"><h2 id="bulten-yapilan">{t('bulten.yapilanlar')}</h2></div>
-            {b.not.yapilanlar && (
-              <div className="bulten-not"><span className="bulten-not-bas">{t('bulten.oneCikanlar')}</span><NotMetni metin={b.not.yapilanlar} /></div>
-            )}
+          <Bolum id="bulten-yapilan" sinif="bulten-yapilan" ust={t('bulten.buAy')} baslik={t('bulten.yapilanlar')}>
             <Kume baslik="bulten.k.faaliyet" satirlar={yapFaaliyet} />
             <Kume baslik="bulten.k.gorev" satirlar={yapGorev} />
             <Kume baslik="bulten.k.cikti" satirlar={yapCikti} />
             <Kume baslik="bulten.k.form" satirlar={yapForm} />
             <Kume baslik="bulten.k.dosya" satirlar={yapDosya} />
-            {!yapilanSayi && !b.not.yapilanlar && <p className="pano-bos">{t('bulten.yapilanlar.bos')}</p>}
-          </section>
+            {!yapilanSayi && <p className="pano-bos">{t('bulten.yapilanlar.bos')}</p>}
+          </Bolum>
 
-          <section className="pano-kutu bulten-sutun bulten-yapilacak" aria-labelledby="bulten-yapilacak">
-            <div className="pano-kutu-bas">
-              <h2 id="bulten-yapilacak">{t(b.gecmis ? 'bulten.kalanlar' : 'bulten.yapilacaklar')}</h2>
-            </div>
+          <Bolum id="bulten-yapilacak" sinif="bulten-yapilacak" ust={t('bulten.gundem')}
+            baslik={t(b.gecmis ? 'bulten.kalanlar' : 'bulten.yapilacaklar')}>
             {b.not.yapilacaklar && (
               <div className="bulten-not"><span className="bulten-not-bas">{t('bulten.hedefler')}</span><NotMetni metin={b.not.yapilacaklar} /></div>
             )}
@@ -246,33 +312,37 @@ export default function Bulten() {
             <Kume baslik="bulten.k.cikti" satirlar={zCikti} />
             <Kume baslik="bulten.k.form" satirlar={zForm} />
             {!yapilacakSayi && !b.not.yapilacaklar && <p className="pano-bos">{t(b.gecmis ? 'bulten.kalanlar.bos' : 'bulten.yapilacaklar.bos')}</p>}
-          </section>
+          </Bolum>
         </div>
 
-        <section className="pano-kutu bulten-sonraki" aria-labelledby="bulten-sonraki">
-          <div className="pano-kutu-bas">
-            <h2 id="bulten-sonraki">{t('bulten.sonraki', { ay: ayAdi(b.sonrakiAy) })}</h2>
-            <span className="pano-sayi">{String(sFaaliyet.length + sGorev.length)}</span>
+        <Bolum id="bulten-sonraki" sinif="bulten-sonraki" ust={t('bulten.gelecekSayi')} baslik={t('bulten.sonraki', { ay: ayAdi(b.sonrakiAy) })}>
+          <div className="bulten-sonraki-izgara">
+            <Kume baslik="bulten.k.faaliyet" satirlar={sFaaliyet} />
+            <Kume baslik="bulten.k.gorev" satirlar={sGorev} />
           </div>
-          <Kume baslik="bulten.k.faaliyet" satirlar={sFaaliyet} />
-          <Kume baslik="bulten.k.gorev" satirlar={sGorev} />
           {!sFaaliyet.length && !sGorev.length && <p className="pano-bos">{t('bulten.sonraki.bos')}</p>}
-        </section>
+        </Bolum>
 
-        {b.not.updated && b.not.yazan && (
-          <p className="bulten-imza">{t('bulten.notYazan', { ad: b.not.yazan, tarih: tamTarih(b.not.updated.slice(0, 10)) })}</p>
-        )}
-      </>
+        <footer className="bulten-kolofon">
+          {b.not.updated && b.not.yazan && (
+            <p className="bulten-imza">{t('bulten.notYazan', { ad: b.not.yazan, tarih: tamTarih(b.not.updated.slice(0, 10)) })}</p>
+          )}
+          <div className="bulten-kolofon-ab">
+            <img src="ab-ortak-finanse.webp" alt={t('ab.logo.ortak')} width="149" height="31" />
+            <p>{t('altbilgi.feragat')}</p>
+          </div>
+          <p className="bulten-kolofon-son">
+            {[durum.proje?.acronym || t('site.ad'), t('bulten.sayi', { n: sayiNo }), ayAdi(b.ay)].join(' · ')}
+          </p>
+        </footer>
+      </article>
     );
   }
 
   return (
-    <main id="icerik">
-      <section className="kapsayici sayfa-bas">
-        <span className="ustbaslik">{`${t('bulten.ust')} · ${durum.proje?.acronym || ''}`}</span>
-        <h1>{b ? ayAdi(b.ay) : t('bulten.baslik')}</h1>
-        <p>{t(b?.ay === durum.proje?.start?.slice(0, 7) ? 'bulten.giris.baslangic' : b && b.ay < (durum.proje?.start || '') ? 'bulten.giris.hazirlik' : 'bulten.giris')}</p>
-        {b && (
+    <main id="icerik" className="bulten-sayfa">
+      <section className="kapsayici bulten-arac-bas">
+        {b ? (
           <div className="bulten-arac">
             <nav className="gorunum bulten-aylar" aria-label={t('bulten.aylar')}>
               {[...b.aylar].reverse().map(ay => (
@@ -286,7 +356,7 @@ export default function Bulten() {
               <button type="button" className="dugme dugme-ikincil" onClick={() => print()}>{t('bulten.yazdir')}</button>
             </div>
           </div>
-        )}
+        ) : <h1 className="bulten-yukleniyor">{t('bulten.baslik')}</h1>}
       </section>
       <div className="kapsayici bulten">{govde}</div>
       {b?.duzenleyebilir && <NotKutusu acik={duzenle} b={b} kapat={() => setDuzenle(false)} yenile={yenile} />}
@@ -316,9 +386,12 @@ function Fotolar({ b, yenile }) {
     catch (err) { bildir(err.message, 'hata'); }
   };
   return (
-    <section className="pano-kutu bulten-fotolar" aria-labelledby="bulten-foto-bas">
-      <div className="pano-kutu-bas">
-        <h2 id="bulten-foto-bas">{t('bulten.fotolar')}</h2>
+    <section className="bulten-bolum bulten-fotolar" aria-labelledby="bulten-foto-bas" id="bulten-foto-bas-bolum">
+      <header className="bulten-bolum-bas">
+        <div>
+          <span className="bulten-ust">{t('bulten.ayinKareleri')}</span>
+          <h2 id="bulten-foto-bas">{t('bulten.fotolar')}</h2>
+        </div>
         {b.duzenleyebilir && b.fotolar.length < b.maxFoto && (
           <label className="dugme dugme-ikincil dugme-kucuk bulten-eylem-dugme">
             {t(yukleniyor ? 'bulten.fotoYukleniyor' : 'bulten.fotoEkle')}
@@ -326,7 +399,7 @@ function Fotolar({ b, yenile }) {
               onChange={o => { const d = [...o.target.files]; o.target.value = ''; if (d.length) yukle(d); }} />
           </label>
         )}
-      </div>
+      </header>
       {!b.fotolar.length
         ? <p className="pano-bos">{t('bulten.fotolar.bos')}</p>
         : (
