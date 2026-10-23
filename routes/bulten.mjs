@@ -240,8 +240,8 @@ export function bultenRoutes({ db }) {
       return m.set(f.event_id, g);
     }, new Map()).values()];
 
-    const fotolar = (await db.all('SELECT id,ad,aciklama,tur FROM bulten_foto WHERE ay=? ORDER BY id', [ay]))
-      .map(f => ({ id: Number(f.id), ad: f.ad, aciklama: f.aciklama, tur: f.tur }));
+    const fotolar = (await db.all('SELECT id,ad,aciklama,tur,boyut FROM bulten_foto WHERE ay=? ORDER BY id', [ay]))
+      .map(f => ({ id: Number(f.id), ad: f.ad, aciklama: f.aciklama, tur: f.tur, boyut: Number(f.boyut) }));
     const not = await db.get('SELECT n.yapilanlar,n.yapilacaklar,n.updated,u.ad,u.username FROM bulten_not n LEFT JOIN users u ON u.id=n.yazan WHERE n.ay=?', [ay]);
 
     /* Oturumsuz okuyan: kişi adları ve klasör dosya adları çıkarılır. */

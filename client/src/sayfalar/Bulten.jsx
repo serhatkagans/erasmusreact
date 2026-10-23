@@ -447,7 +447,8 @@ function MedyaKart({ f }) {
   const tur = medyaTuru(f);
   const video = tur === 'video';
   const { baslik, etiketler, tanitim } = aciklamaParcala(f.aciklama || '');
-  const adres = `api/bulten/foto/${f.id}`;
+  /* Yanıt bir yıl önbellekte kalır: görsel değişince adres de değişsin diye boyut eklenir. */
+  const adres = `api/bulten/foto/${f.id}?v=${f.boyut}`;
   const etiket = baslik || f.ad;
   return (
     <figure className={`bulten-medya bulten-medya-${tur}`}>
