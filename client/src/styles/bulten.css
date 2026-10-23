@@ -190,13 +190,74 @@
   .bulten-kolofon-ab { flex-direction: column; align-items: flex-start }
 }
 
-/* Yazdırma: üst bant, menü ve düğmeler düşer; kâğıt sayfanın kendisi olur. */
+/*
+  Yazdırma: A4 dikey; üst bant, menü, düğmeler ve içindekiler düşer, kâğıt
+  sayfanın kendisi olur. Basılı alan (~690px) 900px kırılımının altında
+  kaldığı için o kırılımın tek sütuna düşürdüğü düzen burada geri kurulur.
+  Bütün bölümler değil yalnızca satırlar, kartlar ve başlıklar bölünmez:
+  bölümün tamamı bölünmez olunca sayfanın yarısı boş kalıyordu.
+*/
 @media print {
-  body:has(.bulten) .ust, body:has(.bulten) .atla, body:has(.bulten) .alt, .bulten-arac-bas, .bulten-eylem-dugme, .bulten-foto-eylem, .bulten-icindekiler { display: none !important }
-  .bulten { padding: 0 }
-  .bulten-kagit { max-width: none; padding: 0; border: 0; box-shadow: none }
-  .bulten-giris-satir { grid-template-columns: 2fr 1fr }
-  .bulten-izgara { grid-template-columns: 1fr 1fr }
-  .bulten-bolum, .bulten-rakam, .bulten-medya, .pano-satir { break-inside: avoid }
-  .bulten .pano-satir { padding: 6px 2px }
+  @page bulten { size: A4 portrait; margin: 13mm 14mm 14mm }
+  body:has(.bulten) .ust, body:has(.bulten) .atla, body:has(.bulten) .alt, .bulten-arac-bas, .bulten-eylem-dugme, .bulten-foto-eylem,
+  .bulten-icindekiler, .bulten-sosyal-ok, .bulten-medya-tur { display: none !important }
+  html:has(.bulten), body:has(.bulten), .bulten-sayfa { background: #fff !important; min-height: 0 }
+  .bulten-sayfa { page: bulten; font-size: 10.5pt }
+  .bulten { width: auto; margin: 0; padding: 0 }
+  .bulten-kagit { max-width: none; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: #fff }
+  .bulten-kagit * { box-shadow: none !important; transition: none !important }
+  .bulten, .bulten-kagit { -webkit-print-color-adjust: exact; print-color-adjust: exact }
+
+  /* Künye: ekranda vw ile büyüyen ölçüler sabitlenir. */
+  .bulten-ad { margin: 14px 0 4px; font-size: 34pt; gap: 14px }
+  .bulten-ad img { width: 48px }
+  .bulten-alt-ad { margin: 4px auto 12px; font-size: 11pt }
+  .bulten-tarih-serit { font-size: 8pt; padding: 6px 0 }
+
+  /* Manşet + yan sütun yan yana; rakamlar 2×2. */
+  .bulten-giris-satir { grid-template-columns: minmax(0, 1fr) 210px; gap: 22px; padding: 16px 0 }
+  .bulten-yan { padding: 0 0 0 20px; border-top: 0; border-left: 1px solid var(--cizgi-koyu) }
+  .bulten-rakamlar { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 0 }
+  .bulten-rakam, .bulten-rakam:nth-child(even), .bulten-rakam:first-child, .bulten-rakam:nth-child(3) { padding: 10px 8px 10px 0; border-left: 0 }
+  .bulten-rakam:nth-child(even) { padding: 10px 0 10px 10px; border-left: 1px solid var(--cizgi) }
+  .bulten-rakam strong { font-size: 22pt }
+  .bulten-rakam span { font-size: 8pt }
+  .bulten-manset h2 { font-size: 20pt; margin-bottom: 8px }
+  .bulten-spot { font-size: 10.5pt; margin-bottom: 10px }
+  .bulten-yazi { font-size: 10.5pt; line-height: 1.55 }
+  .bulten-yazi li { padding: 3px 0 3px 20px }
+
+  /* Sosyal kartlar: iki sütun, küçük simge. */
+  .bulten-sosyal { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px }
+  .bulten-sosyal-kart { padding: 6px 8px; gap: 8px; border-radius: 8px }
+  .bulten-sosyal-simge { width: 28px; height: 28px; border-radius: 7px }
+  .bulten-sosyal-simge svg { width: 16px; height: 16px }
+  .bulten-sosyal-govde strong { font-size: 9pt }
+  .bulten-sosyal-hesap { font-size: 8.5pt }
+  .bulten-sosyal-not { font-size: 7.5pt }
+
+  /* Bölümler. */
+  .bulten-bolum { padding-top: 18px }
+  .bulten-bolum-bas { break-inside: avoid; break-after: avoid; margin-bottom: 8px }
+  .bulten-bolum-bas h2 { font-size: 15pt }
+  .bulten-kume h3 { break-after: avoid }
+  .bulten-izgara { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 22px }
+  .bulten-izgara > .bulten-yapilacak { padding-left: 22px; border-left: 1px solid var(--cizgi-koyu) }
+  .bulten .pano-satir { padding: 4px 0 }
+  .bulten-kume .pano-satir-govde strong { font-size: 10pt }
+
+  /* Fotoğraflar: tek fotoğraf sayfanın yarısını kaplamaz; açıklama görselden ayrılmaz. */
+  .bulten-foto-izgara { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+  .bulten-foto-izgara img, .bulten-foto-izgara video { height: 58mm }
+  .bulten-foto-izgara.tek { grid-template-columns: minmax(0, 1fr) }
+  .bulten-foto-izgara.tek img { height: auto; max-height: 66mm; object-fit: cover }
+  .bulten-medya-tanitim { font-size: 9pt }
+
+  /* "Gelecek sayıda" kutusu çift çerçeveli; bölünürse çerçeve yarım kalır. */
+  .bulten-sonraki { margin-top: 20px; padding: 12px 16px; outline: 0; background: #fff }
+  .bulten-sonraki-izgara { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 22px }
+  .bulten-sonraki, .bulten-kolofon, .bulten-medya, .bulten-rakamlar, .bulten-not, .bulten-sosyal-kart, .bulten .pano-liste > li { break-inside: avoid }
+  .bulten-kolofon { margin-top: 22px }
+  .bulten-kolofon-ab img { width: 120px }
+  .bulten-kolofon-ab p { font-size: 7pt }
 }
