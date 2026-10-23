@@ -146,6 +146,9 @@
 /* Afiş dikey, video 9:16, fotoğraf yatay: hepsi aynı yükseklikte, kırpılmadan. */
 .bulten-foto-izgara img, .bulten-foto-izgara video { display: block; width: 100%; height: 340px; object-fit: contain; border-radius: 2px; border: 1px solid var(--cizgi); background: var(--zemin) }
 .bulten-foto-izgara.tek img { height: auto; max-height: 520px; object-fit: cover }
+/* Yatay fotoğraf satırı tek başına kaplar ve büyük görünür. */
+.bulten-foto-izgara .bulten-foto-genis { grid-column: 1 / -1 }
+.bulten-foto-izgara .bulten-foto-genis img { height: auto; max-height: 620px; object-fit: contain; background: #0f1f33 }
 .bulten-medya { margin: 0; display: grid; gap: 8px }
 .bulten-medya-cerceve { position: relative; border-radius: 2px; overflow: hidden; transition: transform .15s, box-shadow .15s }
 .bulten-medya:hover .bulten-medya-cerceve { transform: translateY(-2px); box-shadow: var(--golge-o) }
@@ -251,6 +254,7 @@
   .bulten-foto-izgara img, .bulten-foto-izgara video { height: 58mm }
   .bulten-foto-izgara.tek { grid-template-columns: minmax(0, 1fr) }
   .bulten-foto-izgara.tek img { height: auto; max-height: 66mm; object-fit: cover }
+  .bulten-foto-izgara .bulten-foto-genis img { height: auto; max-height: 95mm; background: none }
   .bulten-medya-tanitim { font-size: 9pt }
 
   /* "Gelecek sayıda" kutusu çift çerçeveli; bölünürse çerçeve yarım kalır. */

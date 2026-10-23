@@ -404,8 +404,9 @@ function Fotolar({ b, yenile }) {
         ? <p className="pano-bos">{t('bulten.fotolar.bos')}</p>
         : (
           <ul className={`bulten-foto-izgara${b.fotolar.length === 1 ? ' tek' : ''}`}>
-            {b.fotolar.map(f => (
-              <li key={f.id}>
+            {/* Yatay fotoğraflar başta ve tam genişlikte; afiş ve dikey videolar altta yan yana. */}
+            {[...b.fotolar].sort((x, y) => (medyaTuru(y) === 'foto') - (medyaTuru(x) === 'foto')).map(f => (
+              <li key={f.id} className={medyaTuru(f) === 'foto' ? 'bulten-foto-genis' : undefined}>
                 <MedyaKart f={f} />
                 {b.duzenleyebilir && (
                   <span className="bulten-foto-eylem">
@@ -439,9 +440,12 @@ function aciklamaParcala(metin) {
 
 const SURE = /^\d+\s*(sn|sa|dk|saniye|dakika)\b/i;
 
+/** Medyanın türü: video, afiş (açıklamada ya da adda "afiş" geçer) ya da fotoğraf. */
+const medyaTuru = f => (f.tur.startsWith('video/') ? 'video' : /afi[şs]/i.test(`${f.aciklama} ${f.ad}`) ? 'afis' : 'foto');
+
 function MedyaKart({ f }) {
-  const video = f.tur.startsWith('video/');
-  const tur = video ? 'video' : /afi[şs]/i.test(`${f.aciklama} ${f.ad}`) ? 'afis' : 'foto';
+  const tur = medyaTuru(f);
+  const video = tur === 'video';
   const { baslik, etiketler, tanitim } = aciklamaParcala(f.aciklama || '');
   const adres = `api/bulten/foto/${f.id}`;
   const etiket = baslik || f.ad;
