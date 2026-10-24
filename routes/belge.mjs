@@ -58,7 +58,7 @@ export function belgeRoutes({ db }) {
     if (etkinlikId) {
       if (!/^\d{1,9}$/.test(etkinlikId)) throw new ValidationError('belge.hata.etkinlik');
       const row = await db.get(
-        'SELECT id,slug,wp,kod,baslik,ozet,baslangic,bitis,lider FROM events WHERE id=?', [Number(etkinlikId)]);
+        'SELECT id,slug,wp,kod,baslik,ozet,baslangic,bitis,lider,tur FROM events WHERE id=?', [Number(etkinlikId)]);
       if (!row) throw new ValidationError('belge.hata.etkinlik');
       const kayit = { ...row, baslangic: String(row.baslangic).slice(0, 10), bitis: String(row.bitis).slice(0, 10) };
       etkinlik = {
@@ -67,8 +67,9 @@ export function belgeRoutes({ db }) {
         tarih: tarihAraligi(m, kayit.baslangic, kayit.bitis),
         /* Ev sahibi = etkinliği yürüten (lider) kurum. Logosu belgede
            gösterilir (public/kurum-logo-<kurum>.png); dosyası olmayan
-           kurumda arayüz logoyu sessizce atlar. */
-        evSahibi: partnerOf(row.lider) ? { id: row.lider, ad: partnerOf(row.lider).name } : null,
+           kurumda arayüz logoyu sessizce atlar. Fikri çıktıda (cikti) lider
+           "yürüten" kurumdur, ev sahibi değil: orada gösterilmez. */
+        evSahibi: row.tur !== 'cikti' && partnerOf(row.lider) ? { id: row.lider, ad: partnerOf(row.lider).name } : null,
       };
     }
 
