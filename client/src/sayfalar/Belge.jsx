@@ -229,9 +229,12 @@ function Kagit({ belge, imza, kunye }) {
 
       <header className="belge-ust">
         <img className="belge-logo" src="belge-logo-tam.png" alt={kunye.proje} />
+        {/* Anasayfanın altındaki üçlü logo şeridi: AB eş finansmanı, Ulusal
+            Ajans ve AB Başkanlığı. Görünürlük kuralı gereği belgede de var. */}
         <div className="belge-ab">
           <img src="ab-ortak-finanse.webp" alt={t('ab.logo.ortak')} />
           <img src="ulusal-ajans.webp" alt={t('ab.logo.ajans')} />
+          <img src="ab-baskanligi.webp" alt={t('ab.logo.baskanlik')} />
         </div>
       </header>
 
