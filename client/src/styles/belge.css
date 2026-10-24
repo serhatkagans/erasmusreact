@@ -180,11 +180,11 @@
 .belge-ust { display: flex; align-items: center; justify-content: space-between; gap: 3cqw }
 .belge-logo { height: 6cqw; width: auto }
 /* Üçlü resmî logo: aralarında ince ayraçlar. Kare sayılabilecek iki logo
-   (Ulusal Ajans, AB Başkanlığı) daha yüksek, yatay AB logosu daha alçak
+   (AB Başkanlığı, Ulusal Ajans) daha yüksek, sondaki yatay AB logosu daha alçak
    durur ki üçü göze eşit ağırlıkta görünsün. */
 .belge-ab { display: flex; align-items: center; gap: 1.4cqw }
 .belge-ab img { width: auto; height: 6cqw }
-.belge-ab img:first-child { height: 4cqw }
+.belge-ab img:last-child { height: 4cqw }
 .belge-ab img + img { padding-left: 1.4cqw; border-left: .1cqw solid rgba(15, 42, 74, .18) }
 
 /* --- Gövde ---------------------------------------------------------------- */
@@ -231,6 +231,13 @@
 .belge-muhur::before { content: ''; position: absolute; inset: .7cqw; border-radius: 50%; border: .12cqw dashed rgba(15, 42, 74, .35) }
 .belge-muhur img { width: 5.6cqw; height: auto }
 .belge-muhur span { font-size: .85cqw; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--b-lacivert) }
+
+/* Ev sahibi kurum (etkinliğe yazılan belgede mührün yerinde). Logolar
+   farklı oranlarda gelir: yükseklik ve genişlik birlikte sınırlanır ki
+   yatay bir logo imza sütununa taşmasın, kare bir logo da cüce kalmasın. */
+.belge-evsahibi { display: grid; justify-items: center; gap: .8cqw; padding-bottom: .4cqw }
+.belge-evsahibi span { font-size: .85cqw; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--b-soluk) }
+.belge-evsahibi img { display: block; width: auto; height: auto; max-height: 6.5cqw; max-width: 26cqw }
 
 .belge-imza { justify-self: end; text-align: center; min-width: 24cqw; max-width: 34cqw }
 /* İmzanın atılacağı boşluk: çizginin üstünde ıslak imzaya yer kalsın. */

@@ -166,7 +166,7 @@ export default function Belge() {
           </div>
           <p className="ipucu" id="belge-yazdir-ipucu">{t('belge.yazdir.ipucu')}</p>
           <div id="belge-listesi" className="belge-listesi">
-            {cikti.belgeler.map((b, i) => <Kagit key={i} belge={b} imza={cikti.imza} kunye={cikti.kunye} />)}
+            {cikti.belgeler.map((b, i) => <Kagit key={i} belge={b} imza={cikti.imza} kunye={cikti.kunye} evSahibi={cikti.etkinlik?.evSahibi} />)}
           </div>
         </div>
       )}
@@ -215,7 +215,10 @@ function KurumKarti({ o, uyeler, secili, degistir }) {
  */
 const bugun = () => new Date().toISOString().slice(0, 10);
 
-function Kagit({ belge, imza, kunye }) {
+function Kagit({ belge, imza, kunye, evSahibi }) {
+  /* Ev sahibinin logo dosyası yoksa (henüz eklenmemiş kurum) mühür kalır. */
+  const [logoYok, setLogoYok] = useState(false);
+  const evSahibiLogo = evSahibi && !logoYok;
   return (
     <article className={`belge belge--${belge.tur}`}>
       <div className="belge-susler" aria-hidden="true">
@@ -229,12 +232,13 @@ function Kagit({ belge, imza, kunye }) {
 
       <header className="belge-ust">
         <img className="belge-logo" src="belge-logo-tam.png" alt={kunye.proje} />
-        {/* Anasayfanın altındaki üçlü logo şeridi: AB eş finansmanı, Ulusal
-            Ajans ve AB Başkanlığı. Görünürlük kuralı gereği belgede de var. */}
+        {/* Üçlü resmî logo: AB Başkanlığı, Ulusal Ajans, AB eş finansmanı
+            (kullanıcının istediği sıra, 24 Ekim 2026). Görünürlük kuralı
+            gereği belgede de var. */}
         <div className="belge-ab">
-          <img src="ab-ortak-finanse.webp" alt={t('ab.logo.ortak')} />
-          <img src="ulusal-ajans.webp" alt={t('ab.logo.ajans')} />
           <img src="ab-baskanligi.webp" alt={t('ab.logo.baskanlik')} />
+          <img src="ulusal-ajans.webp" alt={t('ab.logo.ajans')} />
+          <img src="ab-ortak-finanse.webp" alt={t('ab.logo.ortak')} />
         </div>
       </header>
 
@@ -253,10 +257,21 @@ function Kagit({ belge, imza, kunye }) {
           <div><dt>{t('belge.tarih')}</dt><dd>{tamTarih(bugun())}</dd></div>
           <div><dt>{t('altbilgi.projeno').split(':')[0]}</dt><dd>{kunye.projeNo}</dd></div>
         </dl>
-        <div className="belge-muhur" aria-hidden="true">
-          <img src="belge-logo.png" alt="" />
-          <span>Erasmus+</span>
-        </div>
+        {/* Etkinliğe yazılan belgede alt ortada ev sahibi kurumun logosu
+            (public/kurum-logo/<kurum>.png), projeye yazılanda proje mührü. */}
+        {evSahibiLogo
+          ? (
+            <div className="belge-evsahibi">
+              <span>{t('belge.evsahibi')}</span>
+              <img src={`kurum-logo/${evSahibi.id}.png`} alt={evSahibi.ad} onError={() => setLogoYok(true)} />
+            </div>
+          )
+          : (
+            <div className="belge-muhur" aria-hidden="true">
+              <img src="belge-logo.png" alt="" />
+              <span>Erasmus+</span>
+            </div>
+          )}
         <div className="belge-imza">
           <div className="belge-imza-alan" />
           <div className="belge-imza-cizgi">{imza.adSoyad}</div>
