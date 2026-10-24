@@ -258,12 +258,13 @@ function Kagit({ belge, imza, kunye, evSahibi }) {
           <div><dt>{t('altbilgi.projeno').split(':')[0]}</dt><dd>{kunye.projeNo}</dd></div>
         </dl>
         {/* Etkinliğe yazılan belgede alt ortada ev sahibi kurumun logosu
-            (public/kurum-logo/<kurum>.png), projeye yazılanda proje mührü. */}
+            (public/kurum-logo-<kurum>.png; sunucu alt klasör
+            sunmaz, bu yüzden düz ad), projeye yazılanda proje mührü. */}
         {evSahibiLogo
           ? (
             <div className="belge-evsahibi">
               <span>{t('belge.evsahibi')}</span>
-              <img src={`kurum-logo/${evSahibi.id}.png`} alt={evSahibi.ad} onError={() => setLogoYok(true)} />
+              <img src={`kurum-logo-${evSahibi.id}.png`} alt={evSahibi.ad} onError={() => setLogoYok(true)} />
             </div>
           )
           : (

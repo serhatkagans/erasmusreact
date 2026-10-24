@@ -66,7 +66,7 @@ export function belgeRoutes({ db }) {
         baslik: m.baslik(kayit),
         tarih: tarihAraligi(m, kayit.baslangic, kayit.bitis),
         /* Ev sahibi = etkinliği yürüten (lider) kurum. Logosu belgede
-           gösterilir (public/kurum-logo/<kurum>.png); dosyası olmayan
+           gösterilir (public/kurum-logo-<kurum>.png); dosyası olmayan
            kurumda arayüz logoyu sessizce atlar. */
         evSahibi: partnerOf(row.lider) ? { id: row.lider, ad: partnerOf(row.lider).name } : null,
       };
