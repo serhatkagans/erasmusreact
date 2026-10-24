@@ -935,3 +935,7 @@ button.profil-sosyal-bag { width: 100%; font: inherit; font-weight: 700; cursor:
 .tema-dugme svg { width: 20px; height: 20px }
 .ust .tema-dugme { color: #fff }
 .ust .tema-dugme:hover { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.3) }
+
+/* Ekip düzenleme: "Ekipten çıkar" kaydet/vazgeç'ten uzakta, sağda durur —
+   yanlışlıkla basılmasın. */
+.kutu-eylem .uye-cikar { margin-left: auto }

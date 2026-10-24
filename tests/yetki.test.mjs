@@ -247,10 +247,19 @@ test('ekip: üye sistemdeki bir hesaptır ve yalnızca kendi kurumunun ekibine g
   assert.equal((await koordinator.iste(`/api/kullanicilar/${cecfli.id}`, { method: 'PUT', body: { ad: 'Hesaptan Ad', kullanici: h.kullanici ?? h.username, partner: 'cecf', koordinator: false } })).durum, 200);
   assert.equal((await koordinator.iste('/api/ekip')).veri.uyeler.find(u => u.id === eklendi.veri.id).ad, 'Hesaptan Ad');
 
-  /* Ekipten çıkarılamaz — ne kurum ne koordinatör. */
-  assert.equal((await ortak2.iste(`/api/ekip/uye/${eklendi.veri.id}`, { method: 'DELETE' })).durum, 400);
-  assert.equal((await koordinator.iste(`/api/ekip/uye/${eklendi.veri.id}`, { method: 'DELETE' })).durum, 400);
-  assert.ok((await ortak2.iste('/api/ekip')).veri.uyeler.some(u => u.id === eklendi.veri.id));
+  /* Ekipten çıkarma (24 Ekim 2026): başka kurum çıkaramaz; kendi kurumu
+     çıkarır. Görev kurumda kalır (kişisi boşalır), HESAP SİLİNMEZ ve kişi
+     yeniden eklenebilir. */
+  const baskaKurum = await istemci(sunucu, ORTAK);   // GEO CLUB
+  assert.equal((await baskaKurum.iste(`/api/ekip/uye/${eklendi.veri.id}`, { method: 'DELETE' })).durum, 403);
+  const gorev = await ortak2.iste('/api/gorevler', { method: 'POST', body: { partner: 'cecf', uyeId: eklendi.veri.id, baslik: 'Çıkarma sonrası kalacak görev' } });
+  assert.equal(gorev.durum, 201);
+  assert.equal((await ortak2.iste(`/api/ekip/uye/${eklendi.veri.id}`, { method: 'DELETE' })).durum, 200);
+  const sonra = (await ortak2.iste('/api/ekip')).veri;
+  assert.ok(!sonra.uyeler.some(u => u.id === eklendi.veri.id));
+  assert.equal(sonra.gorevler.find(g => g.id === gorev.veri.id).uyeId, null);
+  assert.ok((await koordinator.iste('/api/kullanicilar')).veri.kullanicilar.some(h => h.id === cecfli.id));
+  assert.equal((await ortak2.iste('/api/ekip/uye', { method: 'POST', body: { partner: 'cecf', userId: cecfli.id } })).durum, 201);
 });
 
 test('rapor giriş ister', async () => {

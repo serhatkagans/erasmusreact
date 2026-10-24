@@ -146,8 +146,8 @@ function UyeSatiri({ u, duzenle }) {
         {u.rol && <small>{u.rol}</small>}
         {u.eposta && <a className="uye-posta" href={`mailto:${u.eposta}`}>{u.eposta}</a>}
       </div>
-      {/* Ekipten çıkarma düğmesi YOK (kullanıcı kararı, 23 Eylül 2026): kişi
-          ekipten yalnızca hesabı silinince çıkar. */}
+      {/* Listede × YOK (Eylül'de yanlışlıkla basılıyordu); ekipten çıkarma
+          düzenleme penceresindeki onaylı düğmededir (24 Ekim 2026). */}
       {yetkili(u.partner) && (
         <div className="satir-eylem">
           <button type="button" className="satir-dugme" title={t('genel.duzenle')} aria-label={`${t('genel.duzenle')}: ${u.ad}`} onClick={duzenle}>✎</button>
@@ -326,6 +326,22 @@ function UyeFormu({ mevcut, partner, veri, kapat, yenile }) {
       <div className="kutu-eylem">
         <button type="submit" className="dugme dugme-birincil" disabled={bekliyor}>{t('genel.kaydet')}</button>
         <button type="button" className="dugme dugme-ikincil" data-kapat>{t('genel.vazgec')}</button>
+        {/* Ekipten çıkarma yalnızca düzenleme penceresinde, açık yazılı ve
+            onaylı: listedeki × yanlışlıkla basılıyordu (Eylül'de bu yüzden
+            kaldırılmıştı). Hesap silinmez, görevler kurumda kalır. */}
+        {mevcut && (
+          <button type="button" className="dugme dugme-tehlike uye-cikar" disabled={bekliyor} onClick={async () => {
+            if (!(await onayla(t('ekip.uye.cikar.onay', { ad: mevcut.ad }), { evet: t('ekip.uye.cikar'), tehlike: true }))) return;
+            setHata('');
+            setBekliyor(true);
+            try {
+              await iste(`api/ekip/uye/${mevcut.id}`, { method: 'DELETE' });
+              kapat();
+              await yenile();
+              bildir(t('ekip.uye.cikarildi'));
+            } catch (err) { setHata(err.message); } finally { setBekliyor(false); }
+          }}>{t('ekip.uye.cikar')}</button>
+        )}
       </div>
     </form>
   );

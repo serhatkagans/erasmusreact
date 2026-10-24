@@ -127,11 +127,12 @@ export function ekipRoutes({ db }) {
       }
 
       if (req.method === 'DELETE') {
-        /* Hesaba bağlı ekip üyesi çıkarılamaz: kurumun kalıcı kadrosudur,
-           hesap silinince kendiliğinden gider (CASCADE). Yalnızca bu kural
-           gelmeden yazılmış, hesapsız eski kayıtlar silinebilir.
-           Görevler silinmez: ON DELETE SET NULL ile kurumda kalır. */
-        if (mevcut.user_id) return send(res, 400, { error: 'ekip.hata.silinmez' });
+        /* Ekipten çıkarma (kullanıcı kararı, 24 Ekim 2026 — Eylül'deki
+           "çıkarma yok" kararı geri alındı; o karar yanlışlıkla basılan ×
+           yüzündendi, şimdi açık yazılı ve onaylı bir düğme var). Yalnızca
+           ekip satırı gider: HESAP SİLİNMEZ, kişi istenirse yeniden
+           eklenebilir. Görevler silinmez: ON DELETE SET NULL ile kurumda
+           kalır. Yetki yukarıda denetlendi (kendi kurumu ya da koordinatör). */
         await db.run('DELETE FROM team WHERE id=?', [id]);
         return send(res, 200, { ok: true });
       }
