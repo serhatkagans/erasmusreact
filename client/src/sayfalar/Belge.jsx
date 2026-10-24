@@ -217,11 +217,17 @@ const bugun = () => new Date().toISOString().slice(0, 10);
 
 function Kagit({ belge, imza, kunye, evSahibi }) {
   /* Alt ortadaki kurum: buluşmaya yazılan belgede ev sahibi, öteki
-     belgelerde (proje geneli, fikri çıktı) koordinatör kurum. Logo dosyası
-     yoksa (henüz eklenmemiş kurum) proje mührü kalır. */
-  const [logoYok, setLogoYok] = useState(false);
-  const kurum = evSahibi || kunye.koordinator;
-  const kurumLogo = kurum && !logoYok;
+     belgelerde (proje geneli, fikri çıktı) koordinatör kurum. Sıra bir
+     DÜŞÜŞ ZİNCİRİDİR: ev sahibinin logo dosyası henüz yoksa koordinatöre,
+     onun da yoksa proje mührüne geçilir. (Önceden ev sahibi logosuz
+     kalınca doğrudan mühre düşülüyor, HBV logosu da kayboluyordu.) */
+  const adaylar = [
+    evSahibi && { ...evSahibi, etiket: 'belge.evsahibi' },
+    kunye.koordinator && evSahibi?.id !== kunye.koordinator.id && { ...kunye.koordinator, etiket: 'belge.koordinatorKurum' },
+  ].filter(Boolean);
+  const [sira, setSira] = useState(0);
+  const kurum = adaylar[sira];
+  const kurumLogo = !!kurum;
   return (
     <article className={`belge belge--${belge.tur}`}>
       <div className="belge-susler" aria-hidden="true">
@@ -265,8 +271,8 @@ function Kagit({ belge, imza, kunye, evSahibi }) {
         {kurumLogo
           ? (
             <div className="belge-evsahibi">
-              <span>{t(evSahibi ? 'belge.evsahibi' : 'belge.koordinatorKurum')}</span>
-              <img src={`kurum-logo-${kurum.id}.png`} alt={kurum.ad} onError={() => setLogoYok(true)} />
+              <span>{t(kurum.etiket)}</span>
+              <img key={kurum.id} src={`kurum-logo-${kurum.id}.png`} alt={kurum.ad} onError={() => setSira(s => s + 1)} />
             </div>
           )
           : (
