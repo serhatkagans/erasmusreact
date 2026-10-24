@@ -227,6 +227,8 @@
   "ekip.uye.ekle": "+ Tilføj teammedlem",
   "ekip.uye.ad": "Fulde navn",
   "ekip.uye.rol": "Rolle",
+  "ekip.uye.rol.ipucu": "Vælg fra listen eller skriv selv",
+  "ekip.uye.rol.oneriler": "Projektkoordinator|Projektleder|Projektassistent|Økonomiansvarlig|Kommunikations- og formidlingsansvarlig|Underviser|Ungdomsarbejder|Forsker|Ekspert|IT-/teknisk ansvarlig|Grafisk designer|Frivillig|Deltager",
   "ekip.uye.eposta": "E-mail",
   "ekip.uye.yok": "Denne organisation har endnu ikke oprettet et team.",
   "ekip.uye.sil.onay": "Dette teammedlem bliver fjernet. Vedkommendes opgaver bliver hos organisationen. Er du sikker?",

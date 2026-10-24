@@ -227,6 +227,8 @@
   "ekip.uye.ekle": "+ Adicionar membro da equipa",
   "ekip.uye.ad": "Nome completo",
   "ekip.uye.rol": "Função",
+  "ekip.uye.rol.ipucu": "Escolha da lista ou escreva o seu",
+  "ekip.uye.rol.oneriler": "Coordenador do projeto|Gestor de projeto|Assistente de projeto|Responsável financeiro|Responsável pela comunicação e disseminação|Formador|Técnico de juventude|Investigador|Especialista|Responsável informático / técnico|Designer gráfico|Voluntário|Participante",
   "ekip.uye.eposta": "E-mail",
   "ekip.uye.yok": "Esta organização ainda não definiu uma equipa.",
   "ekip.uye.sil.onay": "Este membro da equipa será removido. As suas tarefas ficam com a organização. Tem a certeza?",

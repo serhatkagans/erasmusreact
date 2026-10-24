@@ -227,6 +227,8 @@
   "ekip.uye.ekle": "+ Aggiungi membro del team",
   "ekip.uye.ad": "Nome e cognome",
   "ekip.uye.rol": "Ruolo",
+  "ekip.uye.rol.ipucu": "Scegli dall'elenco o scrivi il tuo",
+  "ekip.uye.rol.oneriler": "Coordinatore di progetto|Project manager|Assistente di progetto|Responsabile amministrativo-finanziario|Responsabile comunicazione e disseminazione|Formatore|Youth worker|Ricercatore|Esperto|Responsabile IT / tecnico|Grafico|Volontario|Partecipante",
   "ekip.uye.eposta": "E-mail",
   "ekip.uye.yok": "Questa organizzazione non ha ancora definito un team.",
   "ekip.uye.sil.onay": "Questo membro del team verrà rimosso. I suoi compiti restano all'organizzazione. Sei sicuro?",

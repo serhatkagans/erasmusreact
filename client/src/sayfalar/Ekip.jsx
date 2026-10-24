@@ -251,6 +251,20 @@ async function kaydet({ yol, id, govde, setHata, setBekliyor, kapat, yenile }) {
   } catch (err) { setHata(err.message); } finally { setBekliyor(false); }
 }
 
+/** Rol önerileri: hazır liste önce, sonra ekipte kullanılmış diğer roller.
+ *  Büyük/küçük harf farkı aynı rol sayılır. */
+function rolOnerileri(uyeler) {
+  const gorulen = new Set();
+  return [...t('ekip.uye.rol.oneriler').split('|'), ...uyeler.map(u => u.rol).sort((a, b) => a.localeCompare(b, durum.dil))]
+    .map(r => (r || '').trim())
+    .filter(r => {
+      const anahtar = r.toLocaleLowerCase(durum.dil);
+      if (!r || gorulen.has(anahtar)) return false;
+      gorulen.add(anahtar);
+      return true;
+    });
+}
+
 /**
  * Üye formu. Kişi seçimi: yalnızca SEÇİLİ KURUMUN hesapları, ekipte
  * olmayanlar (sunucu da reddeder). Düzenlemede kişi ve kurum değişmez.
@@ -295,7 +309,17 @@ function UyeFormu({ mevcut, partner, veri, kapat, yenile }) {
             )}
         </label>
         <p className="form-tam alan-ipucu" id="uye-kisi-ipucu">{t('ekip.uye.kisiIpucu')}</p>
-        <label className="alan"><span>{t('ekip.uye.rol')}</span><input name="rol" maxLength={120} defaultValue={mevcut?.rol ?? ''} /></label>
+        {/* Rol açılır öneri listesidir ama serbest yazıya da açıktır: ne
+            yazılacağı bilinmeyebilir, listede olmayan bir rol de olabilir.
+            Öneriler = hazır roller (seçili dilde) + ekipte zaten kullanılan
+            roller, böylece aynı rol iki farklı yazımla çoğalmaz. */}
+        <label className="alan"><span>{t('ekip.uye.rol')}</span>
+          <input name="rol" maxLength={120} list="uye-rol-oneriler" autoComplete="off"
+            placeholder={t('ekip.uye.rol.ipucu')} defaultValue={mevcut?.rol ?? ''} />
+          <datalist id="uye-rol-oneriler">
+            {rolOnerileri(veri.uyeler).map(r => <option key={r} value={r} />)}
+          </datalist>
+        </label>
         <label className="alan form-tam"><span>{t('ekip.uye.eposta')}</span><input name="eposta" type="email" maxLength={200} defaultValue={mevcut?.eposta ?? ''} /></label>
       </div>
       <p className="hata" id="uye-hata" role="alert">{hata}</p>

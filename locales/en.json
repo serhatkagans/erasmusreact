@@ -227,6 +227,8 @@
   "ekip.uye.ekle": "+ Add team member",
   "ekip.uye.ad": "Full name",
   "ekip.uye.rol": "Role",
+  "ekip.uye.rol.ipucu": "Pick from the list or type your own",
+  "ekip.uye.rol.oneriler": "Project Coordinator|Project Manager|Project Assistant|Financial Officer|Communication and Dissemination Officer|Trainer|Youth Worker|Researcher|Expert|IT / Technical Officer|Graphic Designer|Volunteer|Participant",
   "ekip.uye.eposta": "E-mail",
   "ekip.uye.yok": "This organisation has not defined a team yet.",
   "ekip.uye.sil.onay": "This team member will be removed. Their tasks stay with the organisation. Are you sure?",

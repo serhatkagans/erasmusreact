@@ -227,6 +227,8 @@
   "ekip.uye.ekle": "+ Adaugă membru în echipă",
   "ekip.uye.ad": "Nume complet",
   "ekip.uye.rol": "Rol",
+  "ekip.uye.rol.ipucu": "Alegeți din listă sau scrieți propriul rol",
+  "ekip.uye.rol.oneriler": "Coordonator de proiect|Manager de proiect|Asistent de proiect|Responsabil financiar|Responsabil comunicare și diseminare|Formator|Lucrător de tineret|Cercetător|Expert|Responsabil IT / tehnic|Designer grafic|Voluntar|Participant",
   "ekip.uye.eposta": "E-mail",
   "ekip.uye.yok": "Această organizație nu și-a definit încă echipa.",
   "ekip.uye.sil.onay": "Acest membru al echipei va fi eliminat. Sarcinile sale rămân la organizație. Ești sigur?",

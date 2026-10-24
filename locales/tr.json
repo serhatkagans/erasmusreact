@@ -227,6 +227,8 @@
   "ekip.uye.ekle": "+ Ekip üyesi ekle",
   "ekip.uye.ad": "Ad soyad",
   "ekip.uye.rol": "Rol",
+  "ekip.uye.rol.ipucu": "Listeden seçin ya da kendiniz yazın",
+  "ekip.uye.rol.oneriler": "Proje Koordinatörü|Proje Yöneticisi|Proje Asistanı|Mali İşler Sorumlusu|İletişim ve Yaygınlaştırma Sorumlusu|Eğitmen|Gençlik Çalışanı|Araştırmacı|Uzman|Teknik Sorumlu (BT)|Grafik Tasarımcı|Gönüllü|Katılımcı",
   "ekip.uye.eposta": "E-posta",
   "ekip.uye.yok": "Bu kurum henüz ekip tanımlamadı.",
   "ekip.uye.sil.onay": "Bu ekip üyesi kaldırılacak. Görevleri kurumda kalır. Emin misiniz?",
