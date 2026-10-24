@@ -101,18 +101,33 @@
   ölçeklenir; `container-type: inline-size` sayesinde iç tipografi `cqw` ile
   belgenin kendi genişliğine oranlanır — ekranda ve kâğıtta yerleşim birebir
   aynı kalır. Sabit `px` kullanılsaydı çıktıda metin kutudan taşardı.
+
+  GÖRSEL DİL LOGODAN GELİR: lacivert yazı (#0f2a4a), yeşil→mavi geçiş,
+  sol alttaki nokta bulutu ve dairesel ok. Renkler belgeye özel değişkenlerde
+  durur: platformun teması (ör. ortak hesabının mavi vurgusu) belgeyi
+  değiştirmesin — belge her hesapta aynı basılmalı.
 */
 .belge {
+  --b-lacivert: #0f2a4a;
+  --b-yesil: #6cbf4a;
+  --b-zumrut: #1f9d7a;
+  --b-mavi: #1a7fc4;
+  --b-gecis: linear-gradient(90deg, var(--b-yesil), var(--b-zumrut) 45%, var(--b-mavi));
+  --b-vurgu: var(--b-zumrut);
+  --b-soluk: #6b7a8c;
+
   position: relative;
+  isolation: isolate;
+  overflow: hidden;
   width: 100%;
   aspect-ratio: 297 / 210;
   container-type: inline-size;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  padding: 4.5cqw 6cqw 3.2cqw;
+  padding: 5.2cqw 7cqw 3.6cqw;
   background: #fff;
-  color: var(--murekkep);
+  color: var(--b-lacivert);
   border: 1px solid var(--cizgi);
   border-radius: 4px;
   box-shadow: var(--golge-o);
@@ -121,35 +136,106 @@
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
-/* Üstteki ince yeşil bant: arayüzdeki çizgiyle aynı işaret. */
-.belge::before { content: ''; position: absolute; inset: 0 0 auto; height: .9cqw; background: linear-gradient(90deg, var(--vurgu), var(--mavi)) }
+/* Teşekkür belgesi mavi tonda: iki tür deste karışınca bir bakışta ayrılır. */
+.belge--tesekkur { --b-vurgu: var(--b-mavi) }
 
-.belge-ust { display: flex; align-items: flex-start; justify-content: space-between; gap: 2cqw }
-.belge-marka { display: flex; align-items: center; gap: 1.2cqw }
-.belge-marka img { width: 4.2cqw; height: 4.2cqw; object-fit: contain }
-.belge-marka strong { display: block; font-size: 1.7cqw; letter-spacing: .06em; color: var(--murekkep) }
-.belge-marka span { display: block; font-size: 1.1cqw; color: var(--soluk) }
-.belge-ab { display: flex; align-items: center; gap: 1cqw; max-width: 30cqw; text-align: right }
-.belge-ab img { width: 6cqw; height: auto }
-.belge-ab span { font-size: 1cqw; line-height: 1.35; color: var(--soluk) }
+/* --- Süsler ---------------------------------------------------------------
+   Hepsi tek bir katmanda, içeriğin ARKASINDA (z-index: -1 + isolation).
+*/
+.belge-susler { position: absolute; inset: 0; z-index: -1; pointer-events: none }
 
-.belge-govde { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 0; padding: 0 2cqw }
-.belge-baslik { margin: 0 0 1.6cqw; font-size: 2.4cqw; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--vurgu) }
-.belge-ad { margin: 0 0 .6cqw; font-size: 4cqw; font-weight: 800; line-height: 1.15; color: var(--murekkep); overflow-wrap: break-word; max-width: 100% }
-.belge-altad { margin: 0 0 1.8cqw; font-size: 1.3cqw; color: var(--soluk) }
+/* Çift çerçeve: dışta ince lacivert çizgi, içte logonun geçişi. Geçiş
+   kenarlığı iki katmanlı zeminle çizilir (iç dolgu padding-box, geçiş
+   border-box). Maske ile kesmek ekranda çalışıyor ama Chrome'un PDF
+   çıktısında maske düşüyor ve bütün kâğıt yeşile boyanıyordu.
+   İç dolgu düz beyaz. Logoların belgeye özel şeffaf zeminli kopyaları var
+   (public/belge-logo*.png): asıl dosyaların zemini 254 gri ve yazdırmada
+   karışım modu (multiply) uygulanmadığı için PDF'te gri kutu görünüyordu. */
+.belge-cerceve { position: absolute; inset: 1.6cqw; border: .12cqw solid rgba(15, 42, 74, .35); border-radius: .8cqw }
+.belge-cerceve::after {
+  content: ''; position: absolute; inset: .55cqw; border-radius: .5cqw;
+  border: .32cqw solid transparent;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    var(--b-gecis) border-box;
+}
+
+/* Nokta bulutu: logonun solundaki noktalar, köşeden içeri doğru küçülür.
+   CSS deseni + maske yerine SVG görseli (public/belge-nokta.svg; göreli
+   <img>, uygulama alt dizinde de çalışsın diye): maske
+   PDF çıktısında düşüyor, desen dikdörtgen bir leke olarak basılıyordu. */
+.belge-nokta { position: absolute; width: 13cqw; height: auto; opacity: .4 }
+.belge-nokta--as { bottom: 2.8cqw; left: 2.8cqw }
+.belge-nokta--us { top: 2.8cqw; right: 2.8cqw; transform: rotate(180deg) }
+
+/* Dairesel ok: logodaki yayın büyük, soluk birer parçası. */
+.belge-yay { position: absolute; width: 34cqw; aspect-ratio: 1; border-radius: 50%; border: .5cqw solid transparent; opacity: .16 }
+.belge-yay--sol { left: -17cqw; top: -15cqw; border-color: var(--b-yesil) var(--b-yesil) transparent transparent; transform: rotate(45deg) }
+.belge-yay--sag { right: -16cqw; bottom: -19cqw; border-color: var(--b-mavi) transparent transparent var(--b-mavi); transform: rotate(20deg) }
+
+.belge-filigran { position: absolute; left: 50%; top: 52%; width: 40cqw; transform: translate(-50%, -50%);
+  opacity: .05 }
+
+/* --- Üst: proje logosu solda, resmî logolar sağda ------------------------- */
+.belge-ust { display: flex; align-items: center; justify-content: space-between; gap: 3cqw }
+.belge-logo { height: 6.4cqw; width: auto }
+.belge-ab { display: flex; align-items: center; gap: 1.6cqw }
+.belge-ab img { width: auto }
+.belge-ab img:first-child { height: 3.4cqw }
+.belge-ab img:last-child { height: 5cqw; padding-left: 1.6cqw; border-left: .1cqw solid rgba(15, 42, 74, .18) }
+
+/* --- Gövde ---------------------------------------------------------------- */
+.belge-govde { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; min-height: 0; padding: 0 3cqw }
+.belge-program { margin: 0 0 1cqw; font-size: 1.05cqw; font-weight: 600; letter-spacing: .08em; color: var(--b-soluk) }
+
+/* Başlık iki yanında geçişli çizgilerle: tek başına duran büyük harfler
+   sayfada "havada" kalıyordu. */
+.belge-baslik { display: flex; align-items: center; gap: 2cqw; margin: 0 0 1.6cqw;
+  font-size: 3.4cqw; font-weight: 800; line-height: 1.1; letter-spacing: .16em; text-transform: uppercase; color: var(--b-lacivert) }
+.belge-baslik::before, .belge-baslik::after { content: ''; flex: none; width: 7cqw; height: .25cqw; border-radius: 1cqw; background: var(--b-gecis) }
+.belge-baslik::before { transform: scaleX(-1) }
+
+.belge-sunulur { margin: 0 0 1.4cqw; font-size: 1.35cqw; font-style: italic; color: var(--b-soluk) }
+
+/* Ad: belgenin en büyük öğesi; serif harf ona "belge" ağırlığı verir. */
+.belge-ad { margin: 0; max-width: 100%; font-family: Georgia, Cambria, 'Times New Roman', serif;
+  font-size: 5.6cqw; font-weight: 700; line-height: 1.12; color: var(--b-lacivert); overflow-wrap: break-word }
+.belge-ad-cizgi { display: block; width: 30cqw; max-width: 80%; height: .3cqw; margin: 1.1cqw 0 1.6cqw;
+  border-radius: 1cqw; background: var(--b-gecis) }
+.belge-altad { margin: -.6cqw 0 1.4cqw; font-size: 1.3cqw; font-weight: 600; color: var(--b-vurgu) }
 /*
   SATIR SONLARI KORUNUR: gövde metni tarihin önüne bir satır sonu koyuyor.
   `pre-line` olmasaydı o satır sonu boşluğa dönüşür, tarih cümlenin ortasında
   kalır ve satır sonunda ikiye bölünürdü (GençTek'te yaşanmıştı).
 */
-.belge-metin { margin: 0; max-width: 82%; font-size: 1.5cqw; line-height: 1.6; color: var(--metin); white-space: pre-line; overflow-wrap: break-word }
+.belge-metin { margin: 0; max-width: 76%; font-size: 1.65cqw; line-height: 1.7; color: #3d4d60; white-space: pre-line; overflow-wrap: break-word }
 
-.belge-alt { display: flex; align-items: flex-end; justify-content: space-between; gap: 2cqw; margin-top: 1.5cqw }
-.belge-kunye { font-size: 1cqw; line-height: 1.4; color: var(--soluk); text-align: left; max-width: 45cqw }
-.belge-imza { text-align: center; min-width: 22cqw; max-width: 40cqw }
-.belge-imza-cizgi { border-top: 1px solid var(--cizgi-koyu); padding-top: .5cqw; font-size: 1.3cqw; font-weight: 700; color: var(--murekkep) }
-.belge-birim { margin-top: .2cqw; font-size: 1.05cqw; color: var(--soluk); line-height: 1.3 }
-.belge-feragat { margin: 1.2cqw 0 0; font-size: .82cqw; line-height: 1.35; color: var(--soluk); text-align: justify }
+/* --- Alt: bilgi · mühür · imza -------------------------------------------
+   Üç sütun eşit genişlikte: mühür her zaman tam ortada durur, imza
+   unvanının uzunluğundan etkilenmez. */
+.belge-alt { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 3cqw; margin-top: 1.4cqw }
+
+.belge-bilgi { display: grid; gap: .7cqw; margin: 0; justify-self: start }
+.belge-bilgi div { display: grid; gap: .1cqw; padding-left: 1cqw; border-left: .3cqw solid var(--b-vurgu) }
+.belge-bilgi dt { font-size: .85cqw; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--b-soluk) }
+.belge-bilgi dd { margin: 0; font-size: 1.2cqw; font-weight: 700; color: var(--b-lacivert); white-space: nowrap }
+
+/* Mühür: logo işareti, geçişli halka ve kesikli iç halka. */
+.belge-muhur { position: relative; display: grid; place-items: center; align-content: center; gap: .2cqw;
+  width: 11cqw; aspect-ratio: 1; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 0 .35cqw #fff, 0 0 0 .6cqw var(--b-vurgu), 0 .6cqw 1.6cqw rgba(15, 42, 74, .12) }
+.belge-muhur::before { content: ''; position: absolute; inset: .7cqw; border-radius: 50%; border: .12cqw dashed rgba(15, 42, 74, .35) }
+.belge-muhur img { width: 5.6cqw; height: auto }
+.belge-muhur span { font-size: .85cqw; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--b-lacivert) }
+
+.belge-imza { justify-self: end; text-align: center; min-width: 24cqw; max-width: 34cqw }
+/* İmzanın atılacağı boşluk: çizginin üstünde ıslak imzaya yer kalsın. */
+.belge-imza-alan { height: 4.2cqw }
+.belge-imza-cizgi { border-top: .14cqw solid var(--b-lacivert); padding-top: .6cqw; font-size: 1.35cqw; font-weight: 700; color: var(--b-lacivert) }
+.belge-birim { margin-top: .2cqw; font-size: 1.05cqw; color: var(--b-soluk); line-height: 1.3 }
+
+.belge-feragat { margin: 1.6cqw 0 0; font-size: .74cqw; line-height: 1.4; color: var(--b-soluk); text-align: center }
 
 /*
   React sürümünde bütün CSS dosyaları her sayfada yüklü (main.jsx). Eski

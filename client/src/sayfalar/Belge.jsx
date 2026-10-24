@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { durum, t, iste, ortakAdi, ortakKisa, yerAdi, etkinlikBaslik, tarihAraligi } from '../ortak.js';
+import { durum, t, iste, ortakAdi, ortakKisa, yerAdi, etkinlikBaslik, tarihAraligi, tamTarih } from '../ortak.js';
 import { useBaslik } from '../bilesenler/Kabuk.jsx';
 
 /**
@@ -204,28 +204,58 @@ function KurumKarti({ o, uyeler, secili, degistir }) {
   );
 }
 
+/**
+ * Tek belge kâğıdı. Görsel dil logodan gelir: yeşil→mavi geçiş çerçevede ve
+ * adın altındaki çizgide, logodaki nokta bulutu köşelerde, logo işaretinin
+ * kendisi filigranda ve mühürde. Süsler `aria-hidden`: ekran okuyucu yalnızca
+ * belgenin metnini okur.
+ *
+ * Düzenleme tarihi belgeyi ÜRETEN gündür (bugün): belge saklanmadığı için
+ * (bkz. lib/belge.mjs) her yazdırma kendi gününü taşır.
+ */
+const bugun = () => new Date().toISOString().slice(0, 10);
+
 function Kagit({ belge, imza, kunye }) {
   return (
-    <article className="belge">
+    <article className={`belge belge--${belge.tur}`}>
+      <div className="belge-susler" aria-hidden="true">
+        <span className="belge-cerceve" />
+        <img className="belge-nokta belge-nokta--us" src="belge-nokta.svg" alt="" />
+        <img className="belge-nokta belge-nokta--as" src="belge-nokta.svg" alt="" />
+        <span className="belge-yay belge-yay--sol" />
+        <span className="belge-yay belge-yay--sag" />
+        <img className="belge-filigran" src="belge-logo.png" alt="" />
+      </div>
+
       <header className="belge-ust">
-        <div className="belge-marka">
-          <img src="logo.png" alt="" />
-          <div><strong>{kunye.proje}</strong><span>{kunye.program}</span></div>
-        </div>
+        <img className="belge-logo" src="belge-logo-tam.png" alt={kunye.proje} />
         <div className="belge-ab">
-          <img src="ab-amblem.svg" alt={t('ab.amblem')} />
-          <span>{kunye.finanse}</span>
+          <img src="ab-ortak-finanse.webp" alt={t('ab.logo.ortak')} />
+          <img src="ulusal-ajans.webp" alt={t('ab.logo.ajans')} />
         </div>
       </header>
+
       <div className="belge-govde">
-        <p className="belge-baslik">{belge.baslik}</p>
+        <p className="belge-program">{kunye.program}</p>
+        <h2 className="belge-baslik">{belge.baslik}</h2>
+        <p className="belge-sunulur">{t('belge.sunulur')}</p>
         <p className="belge-ad">{belge.ad}</p>
+        <span className="belge-ad-cizgi" aria-hidden="true" />
         {belge.altAd && <p className="belge-altad">{belge.altAd}</p>}
         <p className="belge-metin">{belge.govde}</p>
       </div>
+
       <footer className="belge-alt">
-        <div className="belge-kunye">{t('altbilgi.projeno')}</div>
+        <dl className="belge-bilgi">
+          <div><dt>{t('belge.tarih')}</dt><dd>{tamTarih(bugun())}</dd></div>
+          <div><dt>{t('altbilgi.projeno').split(':')[0]}</dt><dd>{kunye.projeNo}</dd></div>
+        </dl>
+        <div className="belge-muhur" aria-hidden="true">
+          <img src="belge-logo.png" alt="" />
+          <span>Erasmus+</span>
+        </div>
         <div className="belge-imza">
+          <div className="belge-imza-alan" />
           <div className="belge-imza-cizgi">{imza.adSoyad}</div>
           <div className="belge-birim">{imza.unvan}</div>
         </div>
