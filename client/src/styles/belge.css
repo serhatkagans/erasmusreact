@@ -178,7 +178,7 @@
 
 /* --- Üst: proje logosu solda, resmî logolar sağda ------------------------- */
 .belge-ust { display: flex; align-items: center; justify-content: space-between; gap: 3cqw }
-.belge-logo { height: 6cqw; width: auto }
+.belge-logo { height: 7cqw; width: auto }
 /* Üçlü resmî logo: aralarında ince ayraçlar. Kare sayılabilecek iki logo
    (AB Başkanlığı, Ulusal Ajans) daha yüksek, sondaki yatay AB logosu daha alçak
    durur ki üçü göze eşit ağırlıkta görünsün. */

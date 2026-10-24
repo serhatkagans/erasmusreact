@@ -138,6 +138,8 @@ export function belgeRoutes({ db }) {
         projeNo: PROJECT.formId,
         finanse: t('ab.finanse'),
         feragat: t('altbilgi.feragat'),
+        /* Belgenin alt ortasında, ev sahibi olmayan belgelerde gösterilir. */
+        koordinator: (k => k && { id: k.id, ad: k.name })(partners.find(o => o.coordinator)),
       },
     });
   };
