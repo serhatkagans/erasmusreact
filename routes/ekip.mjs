@@ -107,10 +107,18 @@ export function ekipRoutes({ db }) {
 
       if (req.method === 'PUT') {
         const veri = await body(req);
-        /* Kişi değiştirilemez; hesaba bağlı üyede ad hesaptan gelir. Bağsız
-           eski kayıtta (bu kural gelmeden yazılmış) ad düzeltilebilir. */
+        /* Kişi (bağlı hesap) değiştirilemez, ADI düzeltilebilir. Ad ekibe
+           eklenirken hesaptan kopyalanıyordu; hesabın adı boşsa kullanıcı
+           adı yazılıyor ve düzeltecek yer kalmıyordu (canlıda yaşandı,
+           24 Ekim 2026). Hesaba bağlı üyede düzeltme HESABA da yazılır: ad
+           tek bir kişinin adıdır, iki yerde iki farklı ad olmasın. Ad
+           gönderilmezse eskisi kalır. */
+        const ad = veri.ad == null || String(veri.ad).trim() === ''
+          ? mevcut.ad
+          : requireText(veri.ad, 'Ad soyad', { max: 120 });
+        if (mevcut.user_id) await db.run('UPDATE users SET ad=? WHERE id=?', [ad, mevcut.user_id]);
         await db.run('UPDATE team SET ad=?,rol=?,eposta=?,aktif=?,updated=? WHERE id=?',
-          [mevcut.user_id ? mevcut.ad : requireText(veri.ad, 'Ad soyad', { max: 120 }),
+          [ad,
            requireText(veri.rol, 'Rol', { max: 120, required: false }),
            requireText(veri.eposta, 'E-posta', { max: 200, required: false }),
            veri.aktif === false ? 0 : 1,

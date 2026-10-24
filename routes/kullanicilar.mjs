@@ -65,6 +65,8 @@ export function kullanicilarRoutes({ db }) {
       }
       await db.run('UPDATE users SET username=?,ad=?,partner=?,koordinator=? WHERE id=?',
         [kullanici, ad, veri.partner, koordinator ? 1 : 0, hedef.id]);
+      /* Ekipteki ad hesabın adının kopyasıdır; birlikte güncellenir. */
+      await db.run('UPDATE team SET ad=? WHERE user_id=?', [ad, hedef.id]);
       return send(res, 200, shape(await db.get('SELECT id,username,ad,partner,koordinator FROM users WHERE id=?', [hedef.id])));
     }
 

@@ -268,7 +268,7 @@ function UyeFormu({ mevcut, partner, veri, kapat, yenile }) {
       const f = o.currentTarget;
       kaydet({
         yol: 'api/ekip/uye', id: mevcut?.id, setHata, setBekliyor, kapat, yenile,
-        govde: { partner: kurum, userId: f.userId.value ? Number(f.userId.value) : null, ad: mevcut?.ad, rol: f.rol.value, eposta: f.eposta.value },
+        govde: { partner: kurum, userId: f.userId.value ? Number(f.userId.value) : null, ad: mevcut ? f.ad.value : undefined, rol: f.rol.value, eposta: f.eposta.value },
       });
     }}>
       <div className="kutu-ust">
@@ -280,9 +280,12 @@ function UyeFormu({ mevcut, partner, veri, kapat, yenile }) {
           <select name="partner" value={kurum} disabled={!!mevcut} onChange={o => setKurum(o.target.value)}>
             {yetkiliKurumlar().map(id => <option key={id} value={id}>{ortakAdi(id)}</option>)}
           </select></label>
-        <label className="alan"><span>{t('ekip.uye.kisi')}</span>
+        {/* Düzenlemede kişi değişmez ama ADI düzeltilebilir: ad hesaptan
+            kopyalanır ve hesapta ad yoksa kullanıcı adı görünüyordu. Sunucu
+            düzeltmeyi hesaba da yazar. */}
+        <label className="alan"><span>{t(mevcut ? 'ekip.uye.ad' : 'ekip.uye.kisi')}</span>
           {mevcut
-            ? <select name="userId" required disabled><option value={mevcut.userId ?? ''}>{mevcut.ad}</option></select>
+            ? <><input name="ad" maxLength={120} required defaultValue={mevcut.ad} /><input type="hidden" name="userId" value={mevcut.userId ?? ''} /></>
             : (
               <select name="userId" required key={kurum} defaultValue="">
                 {adaylar.length

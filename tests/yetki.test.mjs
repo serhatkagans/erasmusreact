@@ -230,11 +230,22 @@ test('ekip: üye sistemdeki bir hesaptır ve yalnızca kendi kurumunun ekibine g
   const koordinator = await istemci(sunucu, KOORDINATOR);
   assert.equal((await koordinator.iste('/api/ekip/uye', { method: 'POST', body: { partner: 'cecf', userId: hbvli.id } })).durum, 400);
 
-  /* Düzenlemede kişi değişmez: gönderilen ad yok sayılır. */
-  const duzen = await ortak2.iste(`/api/ekip/uye/${eklendi.veri.id}`, { method: 'PUT', body: { ad: 'Başka Ad', rol: 'Eğitmen', eposta: '' } });
+  /* Düzenlemede kişi değişmez ama adı düzeltilebilir; düzeltme hesaba da
+     yazılır (ekip ve hesap aynı adı taşır). Ad gönderilmezse eskisi kalır. */
+  const duzen = await ortak2.iste(`/api/ekip/uye/${eklendi.veri.id}`, { method: 'PUT', body: { ad: 'Düzeltilmiş Ad', rol: 'Eğitmen', eposta: '' } });
   assert.equal(duzen.durum, 200);
-  assert.equal(duzen.veri.ad, cecfli.ad);
+  assert.equal(duzen.veri.ad, 'Düzeltilmiş Ad');
+  assert.equal(duzen.veri.userId, cecfli.id);
   assert.equal(duzen.veri.rol, 'Eğitmen');
+  const hesaplar = await koordinator.iste('/api/kullanicilar');
+  assert.equal(hesaplar.veri.kullanicilar.find(h => h.id === cecfli.id).ad, 'Düzeltilmiş Ad');
+  const adsiz = await ortak2.iste(`/api/ekip/uye/${eklendi.veri.id}`, { method: 'PUT', body: { rol: 'Eğitmen', eposta: '' } });
+  assert.equal(adsiz.veri.ad, 'Düzeltilmiş Ad');
+
+  /* Kullanıcılar sayfasında ad değişince ekipteki ad da değişir. */
+  const h = hesaplar.veri.kullanicilar.find(x => x.id === cecfli.id);
+  assert.equal((await koordinator.iste(`/api/kullanicilar/${cecfli.id}`, { method: 'PUT', body: { ad: 'Hesaptan Ad', kullanici: h.kullanici ?? h.username, partner: 'cecf', koordinator: false } })).durum, 200);
+  assert.equal((await koordinator.iste('/api/ekip')).veri.uyeler.find(u => u.id === eklendi.veri.id).ad, 'Hesaptan Ad');
 
   /* Ekipten çıkarılamaz — ne kurum ne koordinatör. */
   assert.equal((await ortak2.iste(`/api/ekip/uye/${eklendi.veri.id}`, { method: 'DELETE' })).durum, 400);
