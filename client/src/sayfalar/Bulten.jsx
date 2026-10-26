@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { durum, t, iste, ortakKisa, etkinlikBaslik, tamTarih, tarihAraligi, ayYil, bugun, boyutYaz } from '../ortak.js';
 import { useVeri } from '../kancalar.js';
 import { useKonum } from '../yonlendirme.js';
@@ -487,13 +487,28 @@ function MedyaKart({ f }) {
   );
 }
 
-/** PDF belge: kapak yerine belge simgesi; açma ve indirme bağlantısı. */
+/**
+ * PDF belge: kapakta ilk sayfa (tarayıcıda pdf.js ile çizilir; çizilemezse
+ * belge simgesi kalır), yanında açma ve indirme bağlantısı.
+ */
 function BelgeKart({ f }) {
   const { baslik, etiketler, tanitim } = aciklamaParcala(f.aciklama || '');
   const adres = `api/bulten/foto/${f.id}?v=${f.boyut}`;
+  const tuval = useRef(null);
+  const [kapak, setKapak] = useState(false);
+  useEffect(() => {
+    let iptal = false;
+    setKapak(false);
+    import('../pdfKapak.js')
+      .then(({ kapakCiz }) => kapakCiz(adres, tuval.current, 240))
+      .then(() => { if (!iptal) setKapak(true); })
+      .catch(() => {});
+    return () => { iptal = true; };
+  }, [adres]);
   return (
     <figure className="bulten-medya bulten-medya-belge">
-      <a className="bulten-belge-kapak" href={adres} target="_blank" rel="noopener" aria-label={baslik || f.ad}>
+      <a className={`bulten-belge-kapak${kapak ? ' cizildi' : ''}`} href={adres} target="_blank" rel="noopener" aria-label={baslik || f.ad}>
+        <canvas ref={tuval} aria-hidden="true" />
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>
         <span>PDF</span>
       </a>

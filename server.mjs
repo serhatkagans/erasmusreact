@@ -74,7 +74,7 @@ const bulten = bultenRoutes({ db });
 const SAYFALAR = new Set(['/index.html', '/takvim.html', '/giris.html', '/ekip.html', '/formlar.html', '/belge.html',
   '/klasorler.html', '/profil.html', '/kullanicilar.html', '/ciktilar.html', '/pano.html', '/drive.html', '/bulten.html']);
 const TURLER = {
-  '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg',
+  '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2', '.json': 'application/json',
 };
 const DIST = new URL('./dist/', import.meta.url);
