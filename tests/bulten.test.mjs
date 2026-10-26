@@ -70,6 +70,16 @@ test('koordinatör not yazar ve fotoğraf ekler; ziyaretçi fotoğrafı görür'
   assert.equal((await anonim.iste(`/api/bulten?ay=${ay}`)).veri.fotolar[0].aciklama, 'Afiş (A4)\nTanıtım');
   assert.equal((await anonim.iste(`/api/bulten/foto/${foto.veri.id}`, { method: 'DELETE' })).durum, 401);
   assert.equal((await k.iste(`/api/bulten/foto/${foto.veri.id}`, { method: 'DELETE' })).durum, 200);
+
+  /* PDF belge de eklenir; indirilince kendi adıyla gelir. */
+  const pdf = await k.iste(`/api/bulten/${ay}/foto`, { method: 'POST', ham: Buffer.from('%PDF-1.4\n%%EOF\n'),
+    headers: { 'x-dosya-adi': encodeURIComponent('Bilgi Paketi_ğ.pdf') } });
+  assert.equal(pdf.durum, 201);
+  assert.equal((await anonim.iste(`/api/bulten?ay=${ay}`)).veri.fotolar.find(f => f.id === pdf.veri.id).tur, 'application/pdf');
+  const belge = await anonim.iste(`/api/bulten/foto/${pdf.veri.id}`);
+  assert.equal(belge.durum, 200);
+  assert.match(belge.basliklar.get('content-disposition'), /filename\*=UTF-8''Bilgi%20Paketi_%C4%9F\.pdf/);
+  assert.equal((await k.iste(`/api/bulten/foto/${pdf.veri.id}`, { method: 'DELETE' })).durum, 200);
 });
 
 test('kısa adres: /bulten ve /bulten/<ay> asıl sayfaya yönlenir', async () => {

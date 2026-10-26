@@ -7,7 +7,8 @@ import { CIKTILAR } from '../lib/cikti.mjs';
  *
  *   GET /api/bulten?ay=2026-10   o ayın bülteni (ay yoksa içinde bulunulan ay)
  *   PUT /api/bulten/2026-10      koordinatör notu: { yapilanlar, yapilacaklar }
- *   POST /api/bulten/2026-10/foto   ayın fotoğrafı (koordinatör; gövde: görsel)
+ *   POST /api/bulten/2026-10/foto   ayın fotoğrafı, videosu ya da PDF belgesi
+ *                                  (koordinatör; gövde: dosya)
  *   GET|DELETE /api/bulten/foto/:id
  *   PUT /api/bulten/foto/:id     açıklama: { aciklama } (ilk satır başlık, altı tanıtım)
  *
@@ -65,10 +66,13 @@ const NOT_SINIRI = 4000;
 const AYLIK_FOTO = 12;
 const ACIKLAMA_SINIRI = 400;
 
-/* Ayın fotoğrafları kısa tanıtım videosu da alır (ör. 30 saniyelik reels). */
+/* Ayın fotoğrafları kısa tanıtım videosu (ör. 30 saniyelik reels) ve PDF
+   belgesi (ör. toplantı bilgi paketi) da alır. */
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 const VIDEO_TURLERI = { 'video/mp4': 'mp4', 'video/webm': 'webm' };
-const MEDYA = { ...PHOTO_TYPES, ...VIDEO_TURLERI };
+const BELGE_TURLERI = { 'application/pdf': 'pdf' };
+const MEDYA = { ...PHOTO_TYPES, ...VIDEO_TURLERI, ...BELGE_TURLERI };
+const sniffBelge = b => (b.length >= 5 && b.toString('ascii', 0, 5) === '%PDF-' ? 'application/pdf' : null);
 function sniffVideo(b) {
   if (b.length < 12) return null;
   if (b.toString('ascii', 4, 8) === 'ftyp') return 'video/mp4';
@@ -91,7 +95,7 @@ export function bultenRoutes({ db }) {
     /* --- Ayın fotoğrafları ------------------------------------------------ */
     if (parca[0] === 'foto' && parca.length === 2) {
       const id = Number(parca[1]);
-      const foto = Number.isInteger(id) && id > 0 && await db.get('SELECT id,tur,veri FROM bulten_foto WHERE id=?', [id]);
+      const foto = Number.isInteger(id) && id > 0 && await db.get('SELECT id,ad,tur,veri FROM bulten_foto WHERE id=?', [id]);
       if (!foto) return send(res, 404, { error: 'bulten.hata.foto' });
       if (req.method === 'DELETE') {
         if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
@@ -108,8 +112,11 @@ export function bultenRoutes({ db }) {
       }
       if (!['GET', 'HEAD'].includes(req.method)) return send(res, 405, { error: 'genel.hata' });
       const veri = Buffer.isBuffer(foto.veri) ? foto.veri : Buffer.from(foto.veri);
+      /* Belge indirilince kendi adıyla kaydedilsin (Türkçe harfler için filename*). */
+      const ad = String(foto.ad || '').replace(/["\\\r\n]/g, '');
       const ortak = { 'Content-Type': foto.tur, 'Accept-Ranges': 'bytes',
-        'Cache-Control': 'public, max-age=31536000, immutable', 'Content-Disposition': 'inline' };
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Disposition': ad ? `inline; filename="${ad.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(ad).replace(/['()*]/g, h => '%' + h.charCodeAt(0).toString(16).toUpperCase())}` : 'inline' };
       /* Video oynatıcı ileri sarmak için parça ister (Range). */
       const aralik = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
       if (aralik && (aralik[1] || aralik[2])) {
@@ -135,7 +142,7 @@ export function bultenRoutes({ db }) {
       const adet = await db.get('SELECT CAST(count(*) AS INTEGER) AS n FROM bulten_foto WHERE ay=?', [ay]);
       if (Number(adet.n) >= AYLIK_FOTO) throw new ValidationError('bulten.hata.fotoSayi');
       const veri = await rawBody(req, MAX_VIDEO_BYTES);
-      const tur = veri.length ? sniffPhoto(veri) || sniffVideo(veri) : null;
+      const tur = veri.length ? sniffPhoto(veri) || sniffVideo(veri) || sniffBelge(veri) : null;
       if (!tur || !MEDYA[tur]) throw new ValidationError('bulten.hata.fotoTur');
       if (PHOTO_TYPES[tur] && veri.length > MAX_PHOTO_BYTES) throw new ValidationError('bulten.hata.fotoTur');
       const ad = requireText(decodeURIComponent(req.headers['x-dosya-adi'] || ''), 'Dosya adı', { max: 200, required: false })

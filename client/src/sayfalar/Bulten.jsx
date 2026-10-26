@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { durum, t, iste, ortakKisa, etkinlikBaslik, tamTarih, tarihAraligi, ayYil, bugun } from '../ortak.js';
+import { durum, t, iste, ortakKisa, etkinlikBaslik, tamTarih, tarihAraligi, ayYil, bugun, boyutYaz } from '../ortak.js';
 import { useVeri } from '../kancalar.js';
 import { useKonum } from '../yonlendirme.js';
 import { useBaslik } from '../bilesenler/Kabuk.jsx';
@@ -395,7 +395,7 @@ function Fotolar({ b, yenile }) {
         {b.duzenleyebilir && b.fotolar.length < b.maxFoto && (
           <label className="dugme dugme-ikincil dugme-kucuk bulten-eylem-dugme">
             {t(yukleniyor ? 'bulten.fotoYukleniyor' : 'bulten.fotoEkle')}
-            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" multiple hidden disabled={yukleniyor}
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,application/pdf" multiple hidden disabled={yukleniyor}
               onChange={o => { const d = [...o.target.files]; o.target.value = ''; if (d.length) yukle(d); }} />
           </label>
         )}
@@ -404,9 +404,10 @@ function Fotolar({ b, yenile }) {
         ? <p className="pano-bos">{t('bulten.fotolar.bos')}</p>
         : (
           <ul className={`bulten-foto-izgara${b.fotolar.length === 1 ? ' tek' : ''}`}>
-            {/* Yatay fotoğraflar başta ve tam genişlikte; afiş ve dikey videolar altta yan yana. */}
-            {[...b.fotolar].sort((x, y) => (medyaTuru(y) === 'foto') - (medyaTuru(x) === 'foto')).map(f => (
-              <li key={f.id} className={medyaTuru(f) === 'foto' ? 'bulten-foto-genis' : undefined}>
+            {/* Yatay fotoğraflar başta ve tam genişlikte; afiş ve dikey videolar
+                ortada yan yana; PDF belgeler en sonda, tam genişlikte. */}
+            {[...b.fotolar].sort((x, y) => SIRA[medyaTuru(x)] - SIRA[medyaTuru(y)]).map(f => (
+              <li key={f.id} className={GENIS.has(medyaTuru(f)) ? 'bulten-foto-genis' : undefined}>
                 <MedyaKart f={f} />
                 {b.duzenleyebilir && (
                   <span className="bulten-foto-eylem">
@@ -440,11 +441,15 @@ function aciklamaParcala(metin) {
 
 const SURE = /^\d+\s*(sn|sa|dk|saniye|dakika)\b/i;
 
-/** Medyanın türü: video, afiş (açıklamada ya da adda "afiş" geçer) ya da fotoğraf. */
-const medyaTuru = f => (f.tur.startsWith('video/') ? 'video' : /afi[şs]/i.test(`${f.aciklama} ${f.ad}`) ? 'afis' : 'foto');
+/** Medyanın türü: PDF belge, video, afiş (açıklamada ya da adda "afiş" geçer) ya da fotoğraf. */
+const medyaTuru = f => (f.tur === 'application/pdf' ? 'belge'
+  : f.tur.startsWith('video/') ? 'video' : /afi[şs]/i.test(`${f.aciklama} ${f.ad}`) ? 'afis' : 'foto');
+const SIRA = { foto: 0, afis: 1, video: 1, belge: 2 };
+const GENIS = new Set(['foto', 'belge']);
 
 function MedyaKart({ f }) {
   const tur = medyaTuru(f);
+  if (tur === 'belge') return <BelgeKart f={f} />;
   const video = tur === 'video';
   const { baslik, etiketler, tanitim } = aciklamaParcala(f.aciklama || '');
   /* Yanıt bir yıl önbellekte kalır: görsel değişince adres de değişsin diye boyut eklenir. */
@@ -478,6 +483,34 @@ function MedyaKart({ f }) {
           {tanitim && <span className="bulten-medya-tanitim">{tanitim}</span>}
         </figcaption>
       )}
+    </figure>
+  );
+}
+
+/** PDF belge: kapak yerine belge simgesi; açma ve indirme bağlantısı. */
+function BelgeKart({ f }) {
+  const { baslik, etiketler, tanitim } = aciklamaParcala(f.aciklama || '');
+  const adres = `api/bulten/foto/${f.id}?v=${f.boyut}`;
+  return (
+    <figure className="bulten-medya bulten-medya-belge">
+      <a className="bulten-belge-kapak" href={adres} target="_blank" rel="noopener" aria-label={baslik || f.ad}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>
+        <span>PDF</span>
+      </a>
+      <figcaption>
+        <span className="bulten-ust">{t('bulten.medya.belge')}</span>
+        <strong>{baslik || f.ad}</strong>
+        {etiketler.length > 0 && (
+          <span className="bulten-medya-etiketler">
+            {etiketler.map((e, i) => <span key={i} className="bulten-etiket">{e}</span>)}
+          </span>
+        )}
+        {tanitim && <span className="bulten-medya-tanitim">{tanitim}</span>}
+        <span className="bulten-belge-eylem">
+          <a className="dugme dugme-birincil dugme-kucuk" href={adres} target="_blank" rel="noopener">{t('bulten.belgeAc')}</a>
+          <a className="dugme dugme-ikincil dugme-kucuk" href={adres} download={f.ad}>{t('bulten.belgeIndir', { boyut: boyutYaz(f.boyut) })}</a>
+        </span>
+      </figcaption>
     </figure>
   );
 }

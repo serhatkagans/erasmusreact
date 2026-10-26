@@ -164,6 +164,19 @@
 .bulten-etiket { padding: 2px 9px; border-radius: 999px; font-size: .74rem; font-weight: 750; background: rgba(var(--vurgu-rgb), .1); color: var(--vurgu-koyu) }
 .bulten-etiket-sure { background: var(--zemin); color: var(--metin); border: 1px solid var(--cizgi) }
 .bulten-medya-tanitim { font-family: var(--serif); font-style: italic; font-size: .88rem; line-height: 1.45; color: var(--metin) }
+/* PDF belge: solda kapak yerine belge simgesi, sağda başlık, tanıtım ve düğmeler. */
+.bulten-medya-belge { grid-template-columns: 132px minmax(0, 1fr); gap: 20px; align-items: start; padding: 16px; border: 1px solid var(--cizgi); border-top: 3px solid var(--murekkep); background: var(--kart) }
+.bulten-belge-kapak { display: grid; place-items: center; align-content: center; gap: 6px; aspect-ratio: 1 / 1.414; border-radius: 2px; background: #0f1f33; color: #fff; text-decoration: none; transition: transform .15s, box-shadow .15s }
+.bulten-belge-kapak:hover { transform: translateY(-2px); box-shadow: var(--golge-o) }
+.bulten-belge-kapak svg { width: 44px; height: 44px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round }
+.bulten-belge-kapak span { font-size: .78rem; font-weight: 800; letter-spacing: .14em; padding: 2px 8px; border-radius: 2px; background: #c5221f }
+.bulten-medya-belge figcaption { border-top: 0; padding: 0; gap: 7px }
+.bulten-medya-belge figcaption strong { font-size: 1.2rem }
+.bulten-belge-eylem { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px }
+@media (max-width: 560px) {
+  .bulten-medya-belge { grid-template-columns: 84px minmax(0, 1fr); gap: 14px; padding: 12px }
+  .bulten-belge-kapak svg { width: 30px; height: 30px }
+}
 .bulten-foto-eylem { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px }
 .bulten-foto-eylem button { width: 30px; height: 30px; border: 0; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 1rem; line-height: 1; cursor: pointer }
 .bulten-foto-eylem button:hover { background: var(--vurgu) }
