@@ -28,3 +28,11 @@ deploy/
 /*.xlsx
 /logo/
 dist/
+
+# Kök klasöre bırakılan görseller ve paylaşılan dosyalar (ekran görüntüsü,
+# logo taslağı, afiş, bilgi paketi); uygulama bunları okumaz.
+/*.png
+/*.jpg
+/*.jpeg
+/afişler/
+/dosyalar/
