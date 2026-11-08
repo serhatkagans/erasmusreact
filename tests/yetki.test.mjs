@@ -389,6 +389,92 @@ test('form: yanıtları ve bekleyenleri yalnızca koordinatör görür', async (
   assert.ok(sonuc.veri.bekleyen.every(p => p.partner !== 'hbv'));
 });
 
+test('dış anket: bağlantıyı alan oturumsuz doldurur, ortak kurum hiç görmez', async () => {
+  const koordinator = await istemci(sunucu, KOORDINATOR);
+  const ortak = await istemci(sunucu, ORTAK);
+  const anonim = await istemci(sunucu);
+
+  /* Dış ankette dosya sorusu olamaz. */
+  const dosyali = await koordinator.iste('/api/formlar', { method: 'POST', body: formGovde({
+    disari: true, sorular: [{ id: 'd1', type: 'dosya', title: 'Belge', help: '', required: false }],
+  }) });
+  assert.equal(dosyali.durum, 400);
+
+  const olustu = await koordinator.iste('/api/formlar', { method: 'POST', body: formGovde({
+    disari: true, hedef: ['geoclub'], koordinatorDoldurur: true,
+    sorular: [{ id: 's1', type: 'tekli', title: 'Yaşınız', help: '', required: true, options: ['17-20', '21-30'] }],
+  }) });
+  assert.equal(olustu.durum, 201);
+  const id = olustu.veri.id;
+  const form = (await koordinator.iste('/api/formlar/' + id)).veri;
+  assert.equal(form.disari, true);
+  assert.match(form.disAnahtar, /^[\w-]{16}$/);
+  assert.deepEqual(form.hedef, [], 'dış ankette hedef kurum yok sayılır');
+  assert.equal(form.koordinatorDoldurur, false);
+  const k = form.disAnahtar;
+
+  /* Taslakken bağlantı çalışmaz. */
+  assert.equal((await anonim.iste('/api/anket/' + k)).durum, 404);
+  await koordinator.iste(`/api/formlar/${id}/durum`, { method: 'PUT', body: { durum: 'yayinda' } });
+
+  /* Oturumsuz okur ve gönderir; sayfa da açık. Kısa adres sayfaya yönlenir. */
+  const okunan = await anonim.iste('/api/anket/' + k);
+  assert.equal(okunan.durum, 200);
+  assert.equal(okunan.veri.sorular.length, 1);
+  assert.equal((await anonim.iste('/anket.html?k=' + k)).durum, 200);
+  const kisa = await anonim.iste('/anket/' + k);
+  assert.equal(kisa.durum, 302);
+  assert.equal(kisa.basliklar.get('location'), '../anket.html?k=' + k);
+
+  assert.equal((await anonim.iste('/api/anket/' + k, { method: 'POST', body: { yanitlar: {} } })).durum, 400, 'boş gönderim');
+  assert.equal((await anonim.iste('/api/anket/' + k, { method: 'POST', body: { yanitlar: { s1: 'yok' } } })).durum, 400, 'seçenekte olmayan yanıt');
+  assert.equal((await anonim.iste('/api/anket/' + k, { method: 'POST', body: { yanitlar: { s1: '17-20' } }, origin: false })).durum, 403, 'Origin yoksa reddedilir');
+  for (const yas of ['17-20', '21-30']) {
+    assert.equal((await anonim.iste('/api/anket/' + k, { method: 'POST', body: { yanitlar: { s1: yas } } })).durum, 201);
+  }
+  /* Tuzak alanı dolu gönderim başarılı görünür ama kaydedilmez. */
+  assert.equal((await anonim.iste('/api/anket/' + k, { method: 'POST', body: { yanitlar: { s1: '17-20' }, web: 'spam' } })).durum, 200);
+
+  /* Anahtar başka hiçbir şeyi açmaz: yanıtlar ve iç formlar hâlâ kapalı. */
+  assert.equal((await anonim.iste(`/api/formlar/${id}/yanitlar`)).durum, 401);
+  assert.equal((await anonim.iste('/api/anket/yanlisanahtar123')).durum, 404);
+
+  /* Ortak kurum dış anketi listede görmez, açamaz, dolduramaz. */
+  assert.ok(!(await ortak.iste('/api/formlar')).veri.some(f => f.id === id));
+  assert.equal((await ortak.iste('/api/formlar/' + id)).durum, 404);
+
+  /* Koordinatör iki isimsiz yanıtı görür; bekleyen yok. */
+  const sonuc = await koordinator.iste(`/api/formlar/${id}/yanitlar`);
+  assert.equal(sonuc.durum, 200);
+  assert.equal(sonuc.veri.yanitlar.length, 2);
+  assert.deepEqual(sonuc.veri.bekleyen, []);
+  assert.ok(sonuc.veri.yanitlar.every(r => r.partner === '' && r.yanitlar.s1));
+  assert.equal((await koordinator.iste('/api/formlar')).veri.find(f => f.id === id).yanitSayisi, 2);
+  assert.equal((await koordinator.iste(`/api/formlar/${id}/yanitlar?bicim=xlsx`)).durum, 200);
+
+  /* Yanıt almış anket taslağa alınamaz; seçenek adı düzeltmesi isimsiz yanıtlara da işlenir. */
+  assert.equal((await koordinator.iste(`/api/formlar/${id}/durum`, { method: 'PUT', body: { durum: 'taslak' } })).durum, 400);
+  const surum = (await koordinator.iste('/api/formlar/' + id)).veri.updated;
+  const duzelt = await koordinator.iste('/api/formlar/' + id, { method: 'PUT', body: {
+    ...formGovde({ sorular: [{ id: 's1', type: 'tekli', title: 'Yaşınız', help: '', required: true, options: ['17–20', '21-30'] }] }),
+    updated: surum, renames: { s1: { '17-20': '17–20' } },
+  } });
+  assert.equal(duzelt.durum, 200);
+  const sonra = await koordinator.iste(`/api/formlar/${id}/yanitlar`);
+  assert.ok(sonra.veri.yanitlar.some(r => r.yanitlar.s1 === '17–20'));
+  assert.equal((await koordinator.iste('/api/formlar/' + id)).veri.disari, true, 'tür düzenlemede değişmez');
+
+  /* Kapatılan anket artık yanıt almaz; silinen anketin bağlantısı ölür. */
+  const surum2 = (await koordinator.iste('/api/formlar/' + id)).veri.updated;
+  await koordinator.iste('/api/formlar/' + id, { method: 'PUT', body: {
+    ...formGovde({ kapali: true, sorular: [{ id: 's1', type: 'tekli', title: 'Yaşınız', help: '', required: true, options: ['17–20', '21-30'] }] }),
+    updated: surum2,
+  } });
+  assert.equal((await anonim.iste('/api/anket/' + k, { method: 'POST', body: { yanitlar: { s1: '21-30' } } })).durum, 400);
+  await koordinator.iste('/api/formlar/' + id, { method: 'DELETE' });
+  assert.equal((await anonim.iste('/api/anket/' + k)).durum, 404);
+});
+
 test('form: eşzamanlı düzenleme ezilmez', async () => {
   const koordinator = await istemci(sunucu, KOORDINATOR);
   const olustu = await koordinator.iste('/api/formlar', { method: 'POST', body: formGovde() });
@@ -943,4 +1029,29 @@ test('pano: kurum kapsamlı; genel durum yalnızca koordinatörde', async () => 
   }
   const k = await (await istemci(sunucu, KOORDINATOR)).iste('/api/pano');
   assert.equal(k.veri.genel.length, 7);
+});
+
+test('dış anket: gönderim sınırı X-Forwarded-For taklidiyle atlatılamaz', async () => {
+  /* Ayrı sunucu: sınır süreç belleğinde tutulur, öbür testlerin anket
+     gönderimlerini etkilemesin. TRUST_PROXY kapalı: başlık hiç okunmamalı. */
+  const ayri = await sunucuBaslat({ hesaplar: HESAPLAR });
+  try {
+    const koordinator = await istemci(ayri, KOORDINATOR);
+    const anonim = await istemci(ayri);
+    const olustu = await koordinator.iste('/api/formlar', { method: 'POST', body: formGovde({
+      disari: true, sorular: [{ id: 's1', type: 'tekli', title: 'Yaşınız', help: '', required: true, options: ['17-20', '21-30'] }],
+    }) });
+    const id = olustu.veri.id;
+    await koordinator.iste(`/api/formlar/${id}/durum`, { method: 'PUT', body: { durum: 'yayinda' } });
+    const k = (await koordinator.iste('/api/formlar/' + id)).veri.disAnahtar;
+
+    const gonder = n => anonim.iste('/api/anket/' + k, {
+      method: 'POST', body: { yanitlar: { s1: '17-20' } }, headers: { 'x-forwarded-for': `10.0.${n >> 8}.${n & 255}` },
+    });
+    for (let n = 0; n < 60; n++) assert.equal((await gonder(n)).durum, 201, `gönderim ${n + 1}`);
+    assert.equal((await gonder(60)).durum, 429, 'başlık her istekte değişse de aynı adres sayılır');
+    assert.equal((await koordinator.iste(`/api/formlar/${id}/yanitlar`)).veri.yanitlar.length, 60);
+  } finally {
+    await ayri.kapat();
+  }
 });

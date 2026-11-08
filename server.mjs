@@ -22,6 +22,7 @@ import { faaliyetRoutes } from './routes/faaliyet.mjs';
 import { panoRoutes } from './routes/pano.mjs';
 import { driveRoutes } from './routes/drive.mjs';
 import { bultenRoutes, ayCoz } from './routes/bulten.mjs';
+import { anketRoutes } from './routes/anket.mjs';
 
 /**
  * HTTP sunucusu: ortak başlıklar, oturum ve dil çözümü, yönlendirme zinciri
@@ -42,12 +43,17 @@ import { bultenRoutes, ayCoz } from './routes/bulten.mjs';
  * kapalı doğar, açmak için bu listeye eklemek gerekir.
  */
 const ACIK_API = new Set(['/api/acilis', '/api/giris', '/api/cikis', '/api/profil', '/api/profil/foto', '/api/profil/vcard']);
-const ACIK_SAYFA = new Set(['/index.html', '/giris.html', '/profil.html', '/bulten.html']);
+const ACIK_SAYFA = new Set(['/index.html', '/giris.html', '/profil.html', '/bulten.html', '/anket.html']);
 /* Aylık bülten herkese açıktır (kullanıcı kararı, 21 Ekim 2026: "bülten
    sayfasını herkes görebilsin"). Yalnızca OKUMA açık; not yazma, fotoğraf
    ekleme ve silme koordinatörde kalır. Oturumsuz okuyana kişi adları ve
    klasördeki dosya adları gönderilmez (routes/bulten.mjs). */
 const acikOkuma = yol => yol === '/api/bulten' || /^\/api\/bulten\/foto\/\d+$/.test(yol);
+/* Dışarıya açık anket (kullanıcı kararı, 5 Kasım 2026: "dışarı için bölümü
+   ayır"): bağlantıyı alan herkes o TEK anketi okur ve doldurur. Okuma ve
+   gönderme ikisi de açık; hangi formun açık olduğuna routes/anket.mjs
+   anahtara bakarak karar verir (yalnızca yayındaki dış anket). */
+const acikAnket = yol => /^\/api\/anket\/[\w-]{8,40}(\/gorsel)?$/.test(yol);
 const db = await openDb();
 
 const etkinlik = etkinlikRoutes({ db });
@@ -65,6 +71,7 @@ const faaliyet = faaliyetRoutes({ db });
 const pano = panoRoutes({ db });
 const drive = driveRoutes({ db });
 const bulten = bultenRoutes({ db });
+const anket = anketRoutes({ db });
 
 /* Arayüz React ile yazılır (client/) ve `npm run build` ile dist/ klasörüne
    derlenir. Sayfa adresleri eskisiyle aynıdır — `takvim.html`,
@@ -72,7 +79,7 @@ const bulten = bultenRoutes({ db });
    React uygulaması (dist/index.html) verilir; hangi sayfanın çizileceğine
    tarayıcıda karar verilir. */
 const SAYFALAR = new Set(['/index.html', '/takvim.html', '/giris.html', '/ekip.html', '/formlar.html', '/belge.html',
-  '/klasorler.html', '/profil.html', '/kullanicilar.html', '/ciktilar.html', '/pano.html', '/drive.html', '/bulten.html']);
+  '/klasorler.html', '/profil.html', '/kullanicilar.html', '/ciktilar.html', '/pano.html', '/drive.html', '/bulten.html', '/anket.html']);
 const TURLER = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2', '.json': 'application/json',
@@ -140,6 +147,13 @@ const server = createServer(async (req, res) => {
       return res.end();
     }
 
+    /* Anketin kısa adresi (karekod için): …/anket/<anahtar>. */
+    const kisaAnket = readOnly && url.pathname.match(/^\/anket\/([\w-]{8,40})\/?$/);
+    if (kisaAnket) {
+      res.writeHead(302, { Location: `../anket.html?k=${kisaAnket[1]}`, 'Cache-Control': 'no-store' });
+      return res.end();
+    }
+
     const token = sessionToken(req);
     const user = token
       ? await db.get('SELECT u.id,u.username,u.ad,u.partner,u.koordinator FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>?',
@@ -159,7 +173,7 @@ const server = createServer(async (req, res) => {
     if (!user) {
       const sayfa = url.pathname === '/' ? '/index.html' : url.pathname;
       if (url.pathname.startsWith('/api/')
-        ? !ACIK_API.has(url.pathname) && !(readOnly && acikOkuma(url.pathname))
+        ? !ACIK_API.has(url.pathname) && !(readOnly && acikOkuma(url.pathname)) && !acikAnket(url.pathname)
         : url.pathname === '/takvim.ics') {
         return send(res, 401, { error: 'genel.girisGerekli' });
       }
@@ -219,6 +233,7 @@ const server = createServer(async (req, res) => {
     if (await pano(ctx)) return;
     if (await drive(ctx)) return;
     if (await bulten(ctx)) return;
+    if (await anket(ctx)) return;
     if (await staticFile(req, res, url, readOnly)) return;
 
     send(res, 404, { error: 'Sayfa bulunamadı.' });

@@ -16,6 +16,8 @@ import Yanitlar from './formlar/Yanitlar.jsx';
  *   #duzenle/12    formu düzenle (koordinatör)  · #duzenle/12/ayarlar
  *   #doldur/12     formu doldur / önizle
  *   #yanitlar/12   yanıtlar (koordinatör)
+ *   #dis           dışarıya açık anketler listesi (koordinatör)
+ *   #yeni/dis      yeni dışarıya açık anket
  *
  * GençTek takvimindeki form ekranının bu projeye taşınmış hâli. Değişen iki
  * şey: hedef kitle il değil ORTAK KURUM, ve bütün metinler sözlükten gelir.
@@ -95,6 +97,8 @@ export default function Formlar() {
     else if (koordinator && gorunum === 'yanitlar' && id) secim = 'yanitlar';
     else if (gorunum === 'doldur' && id) secim = 'doldur';
   }
+  /* Dış anketler ayrı bir bölümdür; listede sekmeyle ayrılır. */
+  const disListe = koordinator && gorunum === 'dis';
   const gfModu = secim !== 'liste' && !yuklenemedi;
 
   /* Liste dışındaki görünümler Google Formlar düzeninde: dar sütun. */
@@ -134,8 +138,8 @@ export default function Formlar() {
                 </div>
               </section>
             )}
-            {durum.kullanici && secim === 'liste' && <FormListesi key={anahtar} {...ortak} />}
-            {secim === 'yeni' && <Duzenleyici key={anahtar} {...ortak} />}
+            {durum.kullanici && secim === 'liste' && <FormListesi key={anahtar} {...ortak} disari={disListe} />}
+            {secim === 'yeni' && <Duzenleyici key={anahtar} {...ortak} disari={ham === 'dis'} />}
             {secim === 'duzenle' && <Duzenleyici key={anahtar} {...ortak} id={id} sekme={sekme} />}
             {secim === 'doldur' && <DoldurGorunumu key={anahtar} {...ortak} id={id} />}
             {secim === 'yanitlar' && <Yanitlar key={anahtar} {...ortak} id={id} />}

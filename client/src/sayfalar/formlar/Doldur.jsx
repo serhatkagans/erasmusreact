@@ -44,8 +44,11 @@ const TASLAK_GECIKME = 2000;
 /**
  * `taslakOnizleme`: düzenleyicideki kaydedilmemiş taslağın önizlemesi.
  * Sunucuya bir şey gönderilmez; yanıtlar denenebilir ama kaydedilmez.
+ *
+ * `disGonder`: dışarıya açık anket (anket.html). Doldurana hesap yok:
+ * taslak kaydedilmez, gönderim bu işlevle yapılır, formlar listesine dönülmez.
  */
-export function DoldurFormu({ f, git, basAyarla, koordinator, taslakOnizleme = false, duzenlemeyeDon, yenidenYukle }) {
+export function DoldurFormu({ f, git, basAyarla, koordinator, taslakOnizleme = false, duzenlemeyeDon, yenidenYukle, disGonder }) {
   const onizleme = taslakOnizleme || !f.doldurur;
   const gonderebilir = !onizleme && f.acik;
   /* Gönderilmemiş taslak, gönderilmiş yanıttan yeniyse o yüklenir. */
@@ -98,21 +101,21 @@ export function DoldurFormu({ f, git, basAyarla, koordinator, taslakOnizleme = f
   /* ---- Taslak: yazdıkça birkaç saniyede bir sunucuya kaydedilir ---------- */
   const taslagiKaydet = useCallback(async ({ keepalive = false } = {}) => {
     clearTimeout(zamanlayici.current); zamanlayici.current = null;
-    if (!gonderebilir) return;
+    if (!gonderebilir || disGonder) return;
     const { yanitlar } = yanitlariOku(f.sorular, false);
     try {
       setTaslakDurum(t('form.taslak.kaydediliyor'));
       const kayit = await api(`api/formlar/${f.id}/taslak`, { method: 'PUT', body: JSON.stringify({ yanitlar }), keepalive });
       setTaslakDurum(t('form.taslak.kaydedildi', { saat: saat(kayit.updated) }));
     } catch { setTaslakDurum(t('form.taslak.kaydedilemedi')); }
-  }, [gonderebilir, f, yanitlariOku]);
+  }, [gonderebilir, disGonder, f, yanitlariOku]);
 
   const taslagiPlanla = useCallback(() => {
-    if (!gonderebilir) return;
+    if (!gonderebilir || disGonder) return;
     clearTimeout(zamanlayici.current);
     setTaslakDurum(t('form.taslak.kaydedilmemis'));
     zamanlayici.current = setTimeout(taslagiKaydet, TASLAK_GECIKME);
-  }, [gonderebilir, taslagiKaydet]);
+  }, [gonderebilir, disGonder, taslagiKaydet]);
 
   /* Sayfadan çıkarken (sekme kapanırken ya da başka görünüme geçerken)
      bekleyen taslak kaybolmasın. */
@@ -163,6 +166,7 @@ export function DoldurFormu({ f, git, basAyarla, koordinator, taslakOnizleme = f
     setGonderiliyor(true);
     clearTimeout(zamanlayici.current); zamanlayici.current = null;
     try {
+      if (disGonder) { await disGonder(yanitlar, formRef.current); return; }
       await api(`api/formlar/${f.id}/yanit`, { method: 'PUT', body: JSON.stringify({ yanitlar }) });
       bildir(t('form.bildirim.yanitKaydedildi', { baslik: f.baslik }));
       git('#');
@@ -288,7 +292,7 @@ export function DoldurFormu({ f, git, basAyarla, koordinator, taslakOnizleme = f
               ? <button type="button" className="dugme dugme-ikincil" onClick={duzenlemeyeDon}>{t('form.duzenlemeyeDon')}</button>
               : gonderebilir
                 ? <><small className="taslak-durum" aria-live="polite">{taslakDurum}</small><button type="button" className="metin-bag" onClick={hepsiniTemizle}>{t('form.formuTemizle')}</button></>
-                : <a className="metin-bag" href="#">{t('form.formlaraDon')}</a>}
+                : !disGonder && <a className="metin-bag" href="#">{t('form.formlaraDon')}</a>}
           </span>
         </div>
       </form>

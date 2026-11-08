@@ -1,7 +1,8 @@
+import { randomBytes } from 'node:crypto';
 import { ValidationError, partners, partnerIds, listOf, sniffPhoto } from '../lib/data.mjs';
 import {
   validateForm, validateAnswers, questionsOf, answersOf, accepting, stateOf, targets, fills,
-  answerable, live, protectQuestions, validRenames, renameAnswers,
+  answerable, live, protectQuestions, validRenames, renameAnswers, disMi,
   fileInfo, MAX_FILES, MAX_FILE_BYTES,
 } from '../lib/forms.mjs';
 import { send, body, rawBody, XLSX } from '../lib/http.mjs';
@@ -25,6 +26,10 @@ import { formExcel } from '../lib/excel.mjs';
  *
  * Formu yalnızca KOORDİNATÖR hazırlar ve yanıtlarını görür. Ortak kurum
  * kullanıcısı hedef kitlesinde olmadığı formu hiç göremez (404).
+ *
+ * DIŞARIYA AÇIK ANKET de burada hazırlanır ve yanıtları burada okunur;
+ * yalnızca DOLDURMA ucu ayrıdır (routes/anket.mjs, oturumsuz). Ortak kurum
+ * kullanıcısı dış anketi hiç görmez.
  *
  * İLETİLER İSTEĞİN DİLİNDE kurulur (bkz. routes/belge.mjs'deki aynı karar):
  * doğrulama kuralları bir `t` alır, çünkü "3. soru başlığı boş bırakılamaz"
@@ -53,6 +58,8 @@ export function formRoutes({ db }) {
     sonTarih: form.son_tarih,
     kapali: !!form.kapali,
     hedef: listOf(form.hedef),
+    disari: disMi(form),
+    disAnahtar: form.dis_anahtar || '',
     created: form.created,
     updated: form.updated,
     acik: accepting(form),
@@ -90,9 +97,12 @@ export function formRoutes({ db }) {
     return JSON.stringify(yanitlar);
   }
 
-  /** Formun yanıt sayısı ve en az bir yanıt almış soru kimlikleri. */
+  /** Formun yanıt sayısı ve en az bir yanıt almış soru kimlikleri (dış anketin isimsiz yanıtları dahil). */
   async function yanitAlanSorular(formId) {
-    const satirlar = await db.all('SELECT yanitlar FROM form_yanitlar WHERE form_id=?', [formId]);
+    const satirlar = [
+      ...await db.all('SELECT yanitlar FROM form_yanitlar WHERE form_id=?', [formId]),
+      ...await db.all('SELECT yanitlar FROM form_dis_yanit WHERE form_id=?', [formId]),
+    ];
     return { sayi: satirlar.length, idler: new Set(satirlar.flatMap(r => Object.keys(answersOf(r)))) };
   }
 
@@ -114,6 +124,7 @@ export function formRoutes({ db }) {
     const [satirlar, kisiler] = await Promise.all([
       db.all(`SELECT forms.*,
                 (SELECT CAST(count(*) AS INTEGER) FROM form_yanitlar r WHERE r.form_id=forms.id) AS yanitSayisi,
+                (SELECT CAST(count(*) AS INTEGER) FROM form_dis_yanit d WHERE d.form_id=forms.id) AS disSayisi,
                 (SELECT r.updated FROM form_yanitlar r WHERE r.form_id=forms.id AND r.user_id=?) AS yanitladi,
                 ${HATIRLATMA}, ${GORSEL}
               FROM forms WHERE silindi='' ORDER BY created DESC, id DESC`, [user.id, user.id]),
@@ -130,7 +141,7 @@ export function formRoutes({ db }) {
     if (user.koordinator) {
       return satirlar.map(form => ({
         ...ortak(form),
-        yanitSayisi: Number(form.yanitSayisi),
+        yanitSayisi: Number(form.yanitSayisi) + Number(form.disSayisi),
         beklenen: kisiler.filter(k => fills(form, k)).length,
         acanAd: acan(kisiler, form),
       }));
@@ -159,14 +170,18 @@ export function formRoutes({ db }) {
       if (req.method !== 'POST') return send(res, 405, { error: 'form.hata.islem' });
       if (!koordinator) return yalnizKoordinator();
 
-      const f = validateForm(await body(req, 400000), t);
+      const veri = await body(req, 400000);
+      const disari = !!veri.disari;
+      const f = validateForm(veri, t, { disari });
       const now = new Date().toISOString();
+      /* Dış anketin bağlantı anahtarı: 16 karakter, tahmin edilemez. */
+      const anahtar = disari ? randomBytes(12).toString('base64url') : '';
       /* Yeni form TASLAK başlar: koordinatör kontrol edip yayımlayana kadar
-         ortaklar görmez. */
+         ortaklar görmez (dış anketin bağlantısı da açılmaz). */
       const id = await db.insert(
-        `INSERT INTO forms (baslik,aciklama,baslik_rich,aciklama_rich,koordinator_doldurur,sorular,hedef,son_tarih,kapali,olusturan,created,updated,durum)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'taslak')`,
-        [f.baslik, f.aciklama, f.baslikRich, f.aciklamaRich, f.koordinatorDoldurur, f.sorular, f.hedef, f.sonTarih, f.kapali, user.id, now, now]);
+        `INSERT INTO forms (baslik,aciklama,baslik_rich,aciklama_rich,koordinator_doldurur,sorular,hedef,son_tarih,kapali,olusturan,created,updated,durum,dis_anahtar)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'taslak',?)`,
+        [f.baslik, f.aciklama, f.baslikRich, f.aciklamaRich, f.koordinatorDoldurur, f.sorular, f.hedef, f.sonTarih, f.kapali, user.id, now, now, anahtar]);
       return send(res, 201, { id: Number(id), updated: now });
     }
 
@@ -206,7 +221,8 @@ export function formRoutes({ db }) {
       if (req.method === 'PUT') {
         const veri = await body(req, 400000);
         if (typeof veri.updated !== 'string') throw new ValidationError(t('form.hata.surum'));
-        const f = validateForm(veri, t);
+        /* Formun türü (iç / dış) açılışta seçilir, değişmez. */
+        const f = validateForm(veri, t, { disari: disMi(form) });
 
         /* Yanıt almış sorular korunur; seçenek adı düzeltmesi eski yanıtlara da işlenir. */
         const once = questionsOf(form), yanitlanan = await yanitAlanSorular(formId);
@@ -227,6 +243,10 @@ export function formRoutes({ db }) {
               const sonraki = renameAnswers(satir.yanitlar, renames);
               if (sonraki) await db.run(`UPDATE ${tablo} SET yanitlar=? WHERE form_id=? AND user_id=?`, [sonraki, formId, satir.user_id]);
             }
+          }
+          for (const satir of await db.all('SELECT id,yanitlar FROM form_dis_yanit WHERE form_id=?', [formId])) {
+            const sonraki = renameAnswers(satir.yanitlar, renames);
+            if (sonraki) await db.run('UPDATE form_dis_yanit SET yanitlar=? WHERE id=?', [sonraki, satir.id]);
           }
         }
         return send(res, 200, { id: formId, updated: now });
@@ -391,6 +411,7 @@ export function formRoutes({ db }) {
     /* --- Yanıtlar (koordinatör) ------------------------------------------ */
     if (bolum === 'yanitlar') {
       if (!koordinator) return yalnizKoordinator();
+      if (disMi(form)) return disYanitlar(req, res, url, form, altId, t, dil);
 
       if (req.method === 'DELETE' && altId) {
         const silinen = await db.get('SELECT user_id FROM form_yanitlar WHERE id=? AND form_id=?', [altId, formId]);
@@ -445,6 +466,45 @@ export function formRoutes({ db }) {
 
     return send(res, 405, { error: 'form.hata.islem' });
   };
+
+  /**
+   * Dış anketin yanıtları: isimsiz, kişi yerine sıra numarası ("Katılımcı 7").
+   * Bekleyen ve hatırlatma yoktur — kimin dolduracağı bilinmiyor.
+   */
+  async function disYanitlar(req, res, url, form, altId, t, dil) {
+    if (req.method === 'DELETE' && altId) {
+      const silinen = await db.get('SELECT id FROM form_dis_yanit WHERE id=? AND form_id=?', [altId, form.id]);
+      if (!silinen) return send(res, 404, { error: 'form.hata.yanitYok' });
+      await db.run('DELETE FROM form_dis_yanit WHERE id=?', [altId]);
+      return send(res, 200, { ok: true });
+    }
+    if (req.method !== 'GET' || altId) return send(res, 405, { error: 'form.hata.islem' });
+
+    const satirlar = await db.all('SELECT id,yanitlar,dil,created FROM form_dis_yanit WHERE form_id=? ORDER BY created, id', [form.id]);
+    const yanitlar = satirlar.map((r, i) => ({
+      id: r.id, partner: '', ad: t('form.dis.katilimci', { n: i + 1 }), dil: r.dil, updated: r.created, yanitlar: r.yanitlar,
+    }));
+
+    const bicim = url.searchParams.get('bicim');
+    if (bicim === 'xlsx') {
+      const dosya = formExcel({ form, yanitlar, t, dil });
+      res.writeHead(200, {
+        'Content-Type': XLSX,
+        'Content-Disposition': `attachment; filename="eyouthpreneur-anket-${form.id}.xlsx"`,
+        'Content-Length': dosya.length,
+      });
+      return res.end(dosya);
+    }
+    if (bicim) throw new ValidationError(t('form.hata.bicim2'));
+
+    return send(res, 200, {
+      form: { ...formGorunum(form), sorular: questionsOf(form) },
+      yanitlar: yanitlar.map(r => ({ ...r, yanitlar: answersOf({ yanitlar: r.yanitlar }) })),
+      bekleyen: [],
+      hesapsiz: [],
+      ortaklar: partners.map(p => ({ id: p.id, name: p.name, short: p.short, country: p.country })),
+    });
+  }
 
   return { handle, formListesi };
 }

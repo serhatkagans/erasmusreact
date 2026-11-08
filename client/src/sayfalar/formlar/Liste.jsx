@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { durum, t } from '../../ortak.js';
 import { onayla, bildir } from '../../bilesenler/Kutu.jsx';
+import Baglanti from './Baglanti.jsx';
 import { api, kacis, damga, gunEtiketi, gorselAdresi, gorselYukle, hedefMetni } from './yardim.jsx';
 
 /** Form listesi: koordinatör hepsini ve durum süzgecini, ortak kendisine gönderilenleri görür. */
@@ -22,7 +23,12 @@ export async function formYayimla(form) {
   return true;
 }
 
-export default function FormListesi({ git, basAyarla, hataGoster, uyar, koordinator }) {
+/**
+ * Koordinatör listesi iki bölümdür: ORTAK KURUM FORMLARI (#) ve DIŞARIYA
+ * AÇIK ANKETLER (#dis). İkisi aynı form altyapısını kullanır; ayrılmaları
+ * karışmasınlar diye (kimin dolduracağı ve kimin göreceği tamamen farklı).
+ */
+export default function FormListesi({ git, basAyarla, hataGoster, uyar, koordinator, disari = false }) {
   const [formlar, setFormlar] = useState(null);
   const [arama, setArama] = useState('');
   const [hal, setHal] = useState('hepsi');
@@ -53,7 +59,7 @@ export default function FormListesi({ git, basAyarla, hataGoster, uyar, koordina
           baslik: t('form.kopyaAdi', { baslik: kaynak.baslik }).slice(0, 200),
           baslikRich: kaynak.baslikRich && `${kaynak.baslikRich} ${kacis(t('form.kopyaEki'))}`,
           aciklama: kaynak.aciklama, aciklamaRich: kaynak.aciklamaRich,
-          sonTarih: '', hedef: kaynak.hedef, koordinatorDoldurur: kaynak.koordinatorDoldurur,
+          sonTarih: '', hedef: kaynak.hedef, koordinatorDoldurur: kaynak.koordinatorDoldurur, disari: kaynak.disari,
           kapali: false, sorular: kaynak.sorular.filter(q => !q.archived),
         }),
       });
@@ -66,7 +72,8 @@ export default function FormListesi({ git, basAyarla, hataGoster, uyar, koordina
   };
 
   const aranan = arama.trim().toLocaleLowerCase(durum.dil);
-  const satirlar = (formlar || []).filter(f => f.baslik.toLocaleLowerCase(durum.dil).includes(aranan)
+  const bolumdekiler = (formlar || []).filter(f => !!f.disari === disari);
+  const satirlar = bolumdekiler.filter(f => f.baslik.toLocaleLowerCase(durum.dil).includes(aranan)
     && (!koordinator || hal === 'hepsi' || f.hal === hal));
   /* Koordinatörün hatırlattığı, henüz gönderilmemiş formlar listenin başında. */
   const hatirlatilan = (formlar || []).filter(f => f.hatirlatildi && !f.yanitladi && f.acik);
@@ -76,7 +83,7 @@ export default function FormListesi({ git, basAyarla, hataGoster, uyar, koordina
   else if (!satirlar.length) {
     icerik = (
       <p className="bos-durum">{aranan ? t('form.bos.arama')
-        : koordinator ? (hal === 'hepsi' ? t('form.bos.koordinator') : t('form.bos.suzgec'))
+        : koordinator ? (hal === 'hepsi' ? t(disari ? 'form.dis.bos' : 'form.bos.koordinator') : t('form.bos.suzgec'))
           : t('form.bos.ortak')}</p>
     );
   } else {
@@ -102,14 +109,21 @@ export default function FormListesi({ git, basAyarla, hataGoster, uyar, koordina
           <span>{t('form.ara')}</span>
           <input id="liste-arama" type="search" maxLength={100} placeholder={t('form.ara.ipucu')} value={arama} onChange={o => setArama(o.target.value)} />
         </label>
-        {koordinator && <button id="yeni-form" className="dugme dugme-birincil" onClick={() => git('#yeni')}>{t('form.yeni')}</button>}
+        {koordinator && <button id="yeni-form" className="dugme dugme-birincil" onClick={() => git(disari ? '#yeni/dis' : '#yeni')}>{t(disari ? 'form.dis.yeni' : 'form.yeni')}</button>}
       </div>
+      {koordinator && (
+        <nav className="gf-sekme form-bolumleri" aria-label={t('form.bolumler')}>
+          <a href="#" aria-pressed={!disari}>{t('form.bolum.ic')} <small>{formlar ? formlar.filter(f => !f.disari).length : ''}</small></a>
+          <a href="#dis" aria-pressed={disari}>{t('form.bolum.dis')} <small>{formlar ? formlar.filter(f => f.disari).length : ''}</small></a>
+        </nav>
+      )}
+      {koordinator && disari && <p className="fp-not">{t('form.dis.aciklama')}</p>}
       {koordinator && (
         <div id="hal-suzgec" className="gorunum hal-suzgec" role="group">
           {['hepsi', 'taslak', 'acik', 'kapali'].map(h => (
             <button key={h} type="button" aria-pressed={hal === h} onClick={() => setHal(h)}>
               <span>{t(h === 'hepsi' ? 'form.suzgec.hepsi' : `form.hal.${h}`)}</span>{' '}
-              <small>{formlar ? (h === 'hepsi' ? formlar.length : formlar.filter(f => f.hal === h).length) : ''}</small>
+              <small>{formlar ? (h === 'hepsi' ? bolumdekiler.length : bolumdekiler.filter(f => f.hal === h).length) : ''}</small>
             </button>
           ))}
         </div>
@@ -121,6 +135,7 @@ export default function FormListesi({ git, basAyarla, hataGoster, uyar, koordina
 
 function FormKarti({ f, koordinator, yayimla, kopyala, kopyalaniyor }) {
   const [etiket, sinif] = halBilgisi(f, koordinator);
+  const [baglantiAcik, setBaglantiAcik] = useState(false);
   const ayrinti = [
     t('form.soru.sayi', { n: f.soruSayisi }),
     f.sonTarih && t('form.sonGun', { gun: gunEtiketi(f.sonTarih) }),
@@ -170,14 +185,21 @@ function FormKarti({ f, koordinator, yayimla, kopyala, kopyalaniyor }) {
         </span>
         <h2><a href={bag}>{f.baslik}</a></h2>
         <p className="form-kart-ust">{ayrinti}</p>
-        {koordinator && f.hal !== 'taslak' && (
+        {koordinator && f.disari && f.hal !== 'taslak' && <p className="form-kart-ust"><strong>{t('form.yanitSayisi', { n: f.yanitSayisi })}</strong></p>}
+        {koordinator && f.disari && baglantiAcik && <Baglanti form={f} />}
+        {koordinator && !f.disari && f.hal !== 'taslak' && (
           <div className="form-ilerleme">
             <progress max={Math.max(f.beklenen, 1)} value={Math.min(f.yanitSayisi, f.beklenen || f.yanitSayisi)} />
             <small>{t('form.ilerleme', { n: f.yanitSayisi, toplam: f.beklenen })}</small>
           </div>
         )}
       </div>
-      <div className="form-kart-eylem">{eylemler}</div>
+      <div className="form-kart-eylem">
+        {eylemler}
+        {koordinator && f.disari && (
+          <button type="button" className="metin-bag" aria-expanded={baglantiAcik} onClick={() => setBaglantiAcik(x => !x)}>{t('form.dis.baglantiKarekod')}</button>
+        )}
+      </div>
     </article>
   );
 }

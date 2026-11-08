@@ -125,9 +125,9 @@ export async function gorselYukle(id, blob) {
 }
 
 /** Hedef kitle metni: "Bütün ortak kurumlar" ya da "3 kurum". */
-export const hedefMetni = form => (form.hedef.length
+export const hedefMetni = form => (form.disari ? t('form.hedef.disari') : (form.hedef.length
   ? t('form.hedef.nKurum', { n: form.hedef.length })
-  : t('form.hedef.hepsi')) + (form.koordinatorDoldurur ? t('form.hedef.veKoordinator') : '');
+  : t('form.hedef.hepsi')) + (form.koordinatorDoldurur ? t('form.hedef.veKoordinator') : ''));
 
 /* Düğme simgeleri (satır içi SVG: CSP dış kaynağa izin vermiyor). */
 const Svg = ({ d }) => <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d={d} /></svg>;

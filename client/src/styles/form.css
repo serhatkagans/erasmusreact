@@ -307,3 +307,20 @@ label.dosya-sec { display: inline-flex; flex-direction: row; align-items: center
 .bekleyen-liste strong { color: var(--murekkep); margin-right: 6px }
 .bekleyen-liste .hatirlatildi { display: block; font-size: .76rem }
 .hatirlat-cubuk { margin: 8px 0 12px }
+
+/* ---- Dışarıya açık anketler ----------------------------------------------
+   Liste iki bölüme ayrılır (ortak kurum formları / dış anketler); dış
+   anketin kartında ve yanıtlar ekranında bağlantı + karekod kutusu durur. */
+.form-bolumleri { justify-content: flex-start; margin: 4px 0 14px }
+.form-bolumleri > a { text-decoration: none }
+.form-bolumleri > [aria-pressed="true"] { color: var(--vurgu) }
+.form-bolumleri > [aria-pressed="true"]::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--vurgu) }
+.form-bolumleri small { font-weight: 500; color: var(--soluk); margin-left: 4px }
+.anket-baglanti { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; margin-top: 10px }
+.anket-karekod { width: 132px; height: 132px; flex: none; border: 1px solid var(--cizgi); border-radius: 8px }
+.anket-baglanti-govde { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 220px }
+.anket-adres { width: 100%; font: inherit; font-size: .9rem; padding: 8px 10px; border: 1px solid var(--cizgi); border-radius: 8px; background: var(--zemin, #f6f7f9) }
+.anket-govde { padding-top: 24px }
+.anket-tuzak { position: absolute; left: -10000px; width: 1px; height: 1px; opacity: 0 }
+.anket-gizlilik { text-align: center; font-size: .82rem; margin: 18px 0 8px }
+.anket-tesekkur p { margin-top: 10px }

@@ -40,10 +40,12 @@ function adDegisimleri(sorular) {
   return sonuc;
 }
 
-export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataGoster, kirli, adresiDegistir }) {
+export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataGoster, kirli, adresiDegistir, disari: yeniDis = false }) {
   const [hazir, setHazir] = useState(!id);
+  /* `disari`: dışarıya açık anket. Yeni formda adresten (#yeni/dis), var
+     olanda sunucudan gelir; sonradan değişmez. */
   const [taslak, setTaslak] = useState(() => ({
-    id: null, updated: null, yanitSayisi: 0, hal: 'taslak', yanitlanan: new Set(),
+    id: null, updated: null, yanitSayisi: 0, hal: 'taslak', yanitlanan: new Set(), disari: !!yeniDis,
   }));
   const [sorular, setSorular] = useState(() => (id ? [] : [bosSoru()]));
   const [etkin, setEtkin] = useState(0);
@@ -64,9 +66,9 @@ export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataG
   /* Yükleme */
   useEffect(() => {
     kirli.current = false;
-    if (!id) { basAyarla(t('form.yeni.ustbaslik'), t('form.yeni')); return; }
+    if (!id) { basAyarla(t(yeniDis ? 'form.dis.yeniUst' : 'form.yeni.ustbaslik'), t(yeniDis ? 'form.dis.yeni' : 'form.yeni')); return; }
     api('api/formlar/' + id).then(f => {
-      setTaslak({ id, updated: f.updated, yanitSayisi: f.yanitSayisi, hal: f.hal, yanitlanan: new Set(f.yanitAlanSorular || []) });
+      setTaslak({ id, updated: f.updated, yanitSayisi: f.yanitSayisi, hal: f.hal, yanitlanan: new Set(f.yanitAlanSorular || []), disari: f.disari });
       const liste = f.sorular.map(q => ({ ...q, options: q.options || [], kokler: [...(q.options || [])] }));
       setSorular(liste);
       setEtkin(Math.max(0, liste.findIndex(q => !q.archived)));
@@ -77,7 +79,7 @@ export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataG
       setHazir(true);
     }).catch(hataGoster);
     return () => { kirli.current = false; };
-  }, [id, basAyarla, hataGoster, kirli]);
+  }, [id, basAyarla, hataGoster, kirli, yeniDis]);
 
   /* Biçimli alanların ilk içeriği bir kez yazılır; sonrasını tarayıcı yönetir
      (contenteditable). React bu alanların içine hiç dokunmaz. */
@@ -235,7 +237,7 @@ export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataG
     const baslikRich = zenginOku(baslikRef.current, true);
     const aciklamaRich = zenginOku(aciklamaRef.current);
     if (!baslikRich) { setHata(t('form.hata.baslikBos')); setSekme('sorular'); return baslikRef.current.focus(); }
-    if (secili && !hedef.length) { setHata(t('form.hata.hedefBos')); return setSekme('ayarlar'); }
+    if (!taslak.disari && secili && !hedef.length) { setHata(t('form.hata.hedefBos')); return setSekme('ayarlar'); }
     const bos = sorular.findIndex(q => yanitlanabilir(q) && !q.archived && !q.title.trim());
     if (bos >= 0) { setHata(t('form.hata.soruBos', { n: bos + 1 })); setSekme('sorular'); return odakla(bos, '[data-field="title"]'); }
 
@@ -243,7 +245,7 @@ export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataG
       baslik: baslikRef.current.textContent, baslikRich,
       aciklama: aciklamaRef.current.innerText, aciklamaRich,
       sonTarih: ayar.sonTarih, kapali: ayar.kapali, koordinatorDoldurur: ayar.koordinatorDoldurur,
-      hedef, updated: taslak.updated,
+      hedef, updated: taslak.updated, disari: taslak.disari,
       sorular: sorular.map(q => ({
         id: q.id, type: q.type, title: q.title, help: q.help, required: q.required,
         ...(q.archived ? { archived: true } : {}),
@@ -252,7 +254,7 @@ export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataG
       renames: adDegisimleri(sorular),
     };
     if (yayimla && !(await onayla(t('form.onay.yayimla', {
-      baslik: govde.baslik.trim(), hedef: hedefMetni({ hedef, koordinatorDoldurur: govde.koordinatorDoldurur }),
+      baslik: govde.baslik.trim(), hedef: hedefMetni({ hedef, koordinatorDoldurur: govde.koordinatorDoldurur, disari: taslak.disari }),
     }), { evet: t('form.yayimla') }))) return;
 
     setBekliyor(yayimla ? 'yayimla' : 'kaydet');
@@ -271,7 +273,7 @@ export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataG
       bildir(yayimla ? t('form.bildirim.yayimlandi', { baslik })
         : taslak.hal === 'taslak' ? t('form.bildirim.taslakKaydedildi', { baslik })
           : t('form.bildirim.guncellendi', { baslik }));
-      git('#');
+      git(taslak.disari ? '#dis' : '#');
     } catch (err) { setHata(err.message); } finally { setBekliyor(false); }
   };
 
@@ -282,7 +284,7 @@ export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataG
       await api('api/formlar/' + taslak.id, { method: 'DELETE' });
       kirli.current = false;
       bildir(t('form.bildirim.silindi', { baslik }));
-      git('#');
+      git(taslak.disari ? '#dis' : '#');
     } catch (err) { setHata(err.message); }
   };
 
@@ -371,7 +373,15 @@ export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataG
             </label>
           </div>
 
-          <fieldset className="fp-kart gf-ayar" hidden={sekme !== 'ayarlar'}>
+          {taslak.disari && (
+            <div className="fp-kart gf-ayar" hidden={sekme !== 'ayarlar'}>
+              <h3>{t('form.ayar.kimler')}</h3>
+              <p>{t('form.dis.kimler')}</p>
+              <p className="soluk">{t('form.dis.kimler.ipucu')}</p>
+            </div>
+          )}
+
+          <fieldset className="fp-kart gf-ayar" hidden={sekme !== 'ayarlar' || taslak.disari}>
             <legend className="gorsel-gizli">{t('form.ayar.kimler')}</legend>
             <h3 aria-hidden="true">{t('form.ayar.kimler')}</h3>
             <div className="secim-kartlari">
@@ -410,7 +420,7 @@ export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataG
         <div id="soru-listesi" className="soru-listesi" hidden={sekme !== 'sorular'}>
           {sorular.map((q, index) => (
             <SoruKarti key={q.id} q={q} index={index} etkin={index === etkin} toplam={sorular.length}
-              kilitli={yanitAldiMi(q)} silinemez={aktifSoruSayisi < 2} bolumEtiketi={bolumEtiketi}
+              kilitli={yanitAldiMi(q)} silinemez={aktifSoruSayisi < 2} bolumEtiketi={bolumEtiketi} disari={taslak.disari}
               etkinlestir={() => odakla(index, '[data-field="title"]')}
               eylem={(act, ek) => eylem(act, index, ek)} guncelle={d => guncelle(index, d)}
               turDegistir={tur => turDegistir(index, tur)}
@@ -428,7 +438,7 @@ export default function Duzenleyici({ id, sekme: ilkSekme, git, basAyarla, hataG
           <button type="button" id="kaydet-form" className={`dugme ${hal === 'taslak' ? 'dugme-ikincil' : 'dugme-birincil'}`} disabled={!!bekliyor} onClick={() => kaydet()}>
             {hal === 'taslak' ? t('form.kaydet.taslak') : t('form.kaydet.degisiklik')}
           </button>
-          <a className="dugme dugme-ikincil" href="#">{t('genel.vazgec')}</a>
+          <a className="dugme dugme-ikincil" href={taslak.disari ? '#dis' : '#'}>{t('genel.vazgec')}</a>
           <button type="button" id="onizle-form" className="dugme dugme-ikincil" onClick={onizle}>{t('form.onizle')}</button>
           {taslak.id && <button type="button" id="sil-form" className="dugme dugme-tehlike" onClick={formuSil}>{t('form.sil')}</button>}
         </div>
@@ -567,7 +577,7 @@ function SoruKarti(p) {
       <div className="soru-ust">
         <input data-field="title" value={q.title} maxLength={500} placeholder={t('form.soru.metin')} onChange={o => p.guncelle({ title: o.target.value })} onKeyDown={girisiEngelle} />
         <select data-field="type" value={q.type} disabled={p.kilitli} onChange={o => p.turDegistir(o.target.value)}>
-          {TURLER.map(tur => <option key={tur} value={tur}>{t(`form.tur.${tur}`)}</option>)}
+          {TURLER.filter(tur => !p.disari || tur !== 'dosya').map(tur => <option key={tur} value={tur}>{t(`form.tur.${tur}`)}</option>)}
         </select>
       </div>
       {p.kilitli && <p className="soru-kilit">{t('form.soru.kilit')}{secimli ? ' ' + t('form.soru.kilitSecenek') : ''}</p>}

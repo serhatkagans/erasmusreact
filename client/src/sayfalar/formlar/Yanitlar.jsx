@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { t, ortakAdi, ortakKisa } from '../../ortak.js';
 import { onayla, bildir } from '../../bilesenler/Kutu.jsx';
+import Baglanti from './Baglanti.jsx';
 import { api, SECIMLI, yanitlanabilir, sayi, damga, gunEtiketi, sirala, METIN_LISTE_SINIRI } from './yardim.jsx';
 
 /**
@@ -12,7 +13,8 @@ const degerMetni = deger => (Array.isArray(deger)
   : typeof deger === 'number' ? sayi(deger)
     : /^\d{4}-\d{2}-\d{2}$/.test(deger ?? '') ? gunEtiketi(deger)
       : String(deger ?? ''));
-const kim = r => `${ortakKisa(r.partner)} · ${r.ad}`;
+/* Dış anketin yanıtı isimsizdir: kurum yok, "Katılımcı 7". */
+const kim = r => (r.partner ? `${ortakKisa(r.partner)} · ${r.ad}` : r.ad);
 
 export default function Yanitlar({ id, basAyarla, hataGoster, uyar }) {
   const [sonuclar, setSonuclar] = useState(null);
@@ -54,15 +56,16 @@ export default function Yanitlar({ id, basAyarla, hataGoster, uyar }) {
       <div className="fp-kart gf-bas gf-yanit-bas">
         <div>
           <h2 id="yanit-sayisi">{t('form.yanitSayisi', { n: yanitlar.length })}</h2>
-          <p id="yanit-giris" className="soluk">{`${form.baslik} · ${t('form.bekleyenSayisi', { n: bekleyen.length })} · ${
+          <p id="yanit-giris" className="soluk">{`${form.baslik} · ${form.disari ? t('form.hedef.disari') : t('form.bekleyenSayisi', { n: bekleyen.length })} · ${
             form.acik ? (form.sonTarih ? t('form.sonGun', { gun: gunEtiketi(form.sonTarih) }) : t('form.yanitAliyor')) : t('form.yanitKapali')}`}</p>
         </div>
         <a id="yanit-excel" className="dugme dugme-ikincil" href={`api/formlar/${id}/yanitlar?bicim=xlsx`} download="">{t('form.excel')}</a>
       </div>
+      {form.disari && <div className="fp-kart"><Baglanti form={form} /></div>}
       <div className="gorunum gf-altsekme" role="tablist">
         <button type="button" aria-pressed={sekme === 'ozet'} onClick={() => setSekme('ozet')}>{t('form.sekme.ozet')}</button>
         <button type="button" aria-pressed={sekme === 'tablo'} onClick={() => setSekme('tablo')}>{t('form.sekme.tablo')}</button>
-        <button type="button" aria-pressed={sekme === 'bekleyen'} onClick={() => setSekme('bekleyen')}>
+        <button type="button" aria-pressed={sekme === 'bekleyen'} onClick={() => setSekme('bekleyen')} hidden={form.disari}>
           <span>{t('form.sekme.bekleyen')}</span> <span id="bekleyen-sayi">{`(${bekleyen.length})`}</span>
         </button>
       </div>
@@ -116,7 +119,7 @@ function Tablo({ form, yanitlar, sil }) {
       <table className="yanit-tablo">
         <thead>
           <tr>
-            <th>{t('takvim.filtre.ortak')}</th><th>{t('form.sutun.kisi')}</th><th>{t('form.sutun.zaman')}</th>
+            {!form.disari && <th>{t('takvim.filtre.ortak')}</th>}<th>{t('form.sutun.kisi')}</th><th>{t('form.sutun.zaman')}</th>
             {sorular.map(q => <th key={q.id}>{q.title}{q.archived && <> <small>{t('form.kaldirildiEki')}</small></>}</th>)}
             <th><span className="gorsel-gizli">{t('genel.sil')}</span></th>
           </tr>
@@ -124,7 +127,7 @@ function Tablo({ form, yanitlar, sil }) {
         <tbody>
           {satirlar.map(r => (
             <tr key={r.id}>
-              <td>{ortakAdi(r.partner)}</td><td>{r.ad}</td><td className="sarmasiz">{damga(r.updated)}</td>
+              {!form.disari && <td>{ortakAdi(r.partner)}</td>}<td>{r.ad}</td><td className="sarmasiz">{damga(r.updated)}</td>
               {sorular.map(q => <td key={q.id}><YanitDegeri q={q} deger={r.yanitlar[q.id]} formId={form.id} /></td>)}
               <td><button type="button" className="metin-bag is-tehlike" onClick={() => sil(r)}>{t('genel.sil')}</button></td>
             </tr>
