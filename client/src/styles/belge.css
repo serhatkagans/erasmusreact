@@ -84,6 +84,31 @@
 .belge-eylem .hata { margin: 0 }
 .belge-eylem .hata:empty { display: none }
 
+/* Kaydetme onayı: "Belgeleri hazırla"nın hemen üstünde. Kutu işaretli
+   değilse deste yalnızca hazırlanır (deneme), hiçbir şey yazılmaz. */
+.belge-kaydet { display: grid; gap: 8px; padding: 16px 22px; border-top: 1px solid var(--cizgi) }
+.belge-kaydet-isaret { font-weight: 650 }
+.belge-kaydet-ipucu { margin: 0; color: var(--soluk) }
+.belge-kaydet-ayrinti { display: grid; gap: 10px; max-width: 520px; margin-top: 4px }
+.belge-kaydet-ayrinti .alan { margin: 0 }
+.belge-kaydet-secenek { display: flex; gap: 8px 20px; flex-wrap: wrap }
+.belge-kaydet-acik { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;
+  margin: 0; font-weight: 650; color: var(--yesil) }
+
+/* Kayıtlı belgeler: formun üstünde kısa bir liste. */
+.belge-kayitlar { margin-bottom: 22px }
+.belge-kayitlar .belge-bant { border-bottom: 0 }
+.belge-kayitlar .ipucu { margin: 0 0 12px; max-width: 80ch }
+.belge-kayit-listesi { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
+.belge-kayit { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; flex-wrap: wrap;
+  border: 1px solid var(--cizgi); border-radius: 12px; padding: 12px 14px; background: var(--kart) }
+.belge-kayit--acik { border-color: var(--vurgu); box-shadow: inset 3px 0 0 var(--vurgu) }
+.belge-kayit-bilgi { display: grid; gap: 2px; min-width: 0 }
+.belge-kayit-bilgi strong { color: var(--murekkep); overflow-wrap: anywhere }
+.belge-kayit-bilgi small { color: var(--soluk); font-size: .8rem }
+.belge-kayit-eylem { display: flex; align-items: center; gap: 14px }
+.belge-kayit-sil { color: #b42318 }
+
 /* Giriş yapılmamışken: içi boş dev bir kutu yerine tek satır ve çıkış. */
 .belge-kapali { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap;
   padding: 26px 22px; text-align: center }

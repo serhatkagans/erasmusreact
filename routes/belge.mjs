@@ -1,11 +1,15 @@
 import { ValidationError, partners, partnerOf, PROJECT } from '../lib/data.mjs';
-import { send } from '../lib/http.mjs';
+import { send, body } from '../lib/http.mjs';
 import { dictionary } from '../lib/i18n.mjs';
 import { metinler, tarihAraligi } from '../lib/rapor.mjs';
 import {
   belgeTuruMu, belgeMetniUret, aliciAdiniCoz, imzaBilgisiniCoz,
   imzaUnvaniOner, ozelMetniCoz, topluAlicilariSec, bosSayisiniCoz, MAX_BELGE,
+  kayitAyariniCoz, kayitAdiniCoz,
 } from '../lib/belge.mjs';
+
+/** Ortak hesabın başka kuruma belge üretme / kayıt açma denemesi: 403. */
+class YetkiHatasi extends Error {}
 
 /**
  * Katılım ve teşekkür belgesi üretimi.
@@ -30,6 +34,13 @@ import {
  * üretilemez" kapısı buraya taşınmadı. Orada belge bir katılımın kanıtıydı ve
  * kişinin profiline katılım düşürüyordu; burada öyle bir bağ yok, belge
  * etkinlikten bağımsız olarak da (proje geneline) üretilebiliyor.
+ *
+ * KAYITLI BELGELER (/api/belge/kayitlar): belgenin ayarları ad verilerek
+ * saklanır, sonradan açılıp yeniden yazdırılır ya da düzenlenir. Kayıt,
+ * kaydı yapan kişinin kurumuna aittir; ortak yalnızca kendi kurumunun
+ * kayıtlarını görür ve değiştirir, koordinatör hepsini. Kaydetmeden önce
+ * belge GERÇEKTEN ÜRETİLİR: yetkisi olmayan ya da üretilemeyen bir ayar
+ * kaydedilemez.
  */
 export function belgeRoutes({ db }) {
   /** Virgüllü kimlik listesi; boş parametre "hiçbiri" demektir. */
@@ -40,11 +51,9 @@ export function belgeRoutes({ db }) {
     return [...new Set(metin.split(','))];
   };
 
-  return async function handle({ req, res, url, user, dil }) {
-    if (url.pathname !== '/api/belge' || req.method !== 'GET') return;
-    if (!user) return send(res, 401, { error: 'belge.hata.giris' });
-
-    const tur = url.searchParams.get('tur') || 'katilim';
+  /** Sorgudan belge destesini üretir; GET /api/belge ve kaydetme paylaşır. */
+  async function uret(sorgu, user, dil) {
+    const tur = sorgu.get('tur') || 'katilim';
     if (!belgeTuruMu(tur)) throw new ValidationError('belge.hata.tur');
 
     const { sozluk } = await dictionary(dil);
@@ -53,7 +62,7 @@ export function belgeRoutes({ db }) {
 
     /* --- Etkinlik (isteğe bağlı) ---------------------------------------
        Seçilmezse belge projenin kendisine yazılır; asıl istenen bu. */
-    const etkinlikId = url.searchParams.get('etkinlik') || '';
+    const etkinlikId = sorgu.get('etkinlik') || '';
     let etkinlik = null;
     if (etkinlikId) {
       if (!/^\d{1,9}$/.test(etkinlikId)) throw new ValidationError('belge.hata.etkinlik');
@@ -100,34 +109,32 @@ export function belgeRoutes({ db }) {
       })),
     ];
 
-    const istenenler = kimlikler(url.searchParams.get('alicilar'));
+    const istenenler = kimlikler(sorgu.get('alicilar'));
     for (const anahtar of istenenler) {
       const aday = adaylar.find(a => a.anahtar === anahtar);
       if (!aday) throw new ValidationError('belge.hata.secim');
       /* Ortak hesabı başka kurumun kişisine belge basamaz; koordinatör
          serbesttir. Arayüz zaten yalnızca kendi kurumunu gösteriyor, bu
          satır adresi elle yazana karşı. */
-      if (!user.koordinator && aday.partner !== user.partner) {
-        return send(res, 403, { error: 'belge.hata.yetki' });
-      }
+      if (!user.koordinator && aday.partner !== user.partner) throw new YetkiHatasi();
     }
 
     /* Listede olmayan kişi: serbest ad. Her satır bir belge. */
-    const serbest = url.searchParams.getAll('ad')
+    const serbest = sorgu.getAll('ad')
       .flatMap(deger => String(deger).split('\n'))
       .map(deger => deger.trim())
       .filter(Boolean)
       .map(deger => ({ anahtar: null, ad: aliciAdiniCoz(deger), altAd: '' }));
 
     /* İsimsiz yedek belge: adı elle yazılır (bkz. lib/belge.mjs · BOS_ALAN). */
-    const bos = bosSayisiniCoz(url.searchParams.get('bos'));
+    const bos = bosSayisiniCoz(sorgu.get('bos'));
 
     const alicilar = topluAlicilariSec({ adaylar, istenenler, serbest, bos, dil });
 
-    const ozelMetin = ozelMetniCoz(url.searchParams.get('metin'));
+    const ozelMetin = ozelMetniCoz(sorgu.get('metin'));
     const imza = imzaBilgisiniCoz({
-      ad: url.searchParams.get('imzaAd'),
-      unvan: url.searchParams.get('imzaUnvan'),
+      ad: sorgu.get('imzaAd'),
+      unvan: sorgu.get('imzaUnvan'),
       varsayilanUnvan: imzaUnvaniOner(user, t),
     });
 
@@ -136,14 +143,14 @@ export function belgeRoutes({ db }) {
       if (deger.length > max) throw new ValidationError('belge.hata.unvanUzun');
       return deger;
     };
-    const baslik = kisa(url.searchParams.get('baslik'), 120);
-    const giris = kisa(url.searchParams.get('giris'), 200);
+    const baslik = kisa(sorgu.get('baslik'), 120);
+    const giris = kisa(sorgu.get('giris'), 200);
 
     const belgeler = alicilar.map(alici => belgeMetniUret({
       tur, ad: alici.ad, altAd: alici.altAd, kurum: alici.kurum, ulke: alici.ulke, bos: !!alici.bos, etkinlik, ozelMetin, baslik, giris, t,
     }));
 
-    return send(res, 200, {
+    return {
       belgeler,
       imza,
       etkinlik,
@@ -157,6 +164,78 @@ export function belgeRoutes({ db }) {
         /* Belgenin alt ortasında, ev sahibi olmayan belgelerde gösterilir. */
         koordinator: (k => k && { id: k.id, ad: k.name })(partners.find(o => o.coordinator)),
       },
-    });
+    };
+  }
+
+  const KAYIT_SUTUN = `k.id,k.ad,k.partner,k.ayar,k.sayi,k.created,k.updated,
+    o.ad AS olusturan_ad, g.ad AS guncelleyen_ad`;
+  const KAYIT_KAYNAK = `belge_kayit k LEFT JOIN users o ON o.id=k.olusturan LEFT JOIN users g ON g.id=k.guncelleyen`;
+  const kayitCikti = k => {
+    const ayar = new URLSearchParams(k.ayar);
+    return {
+      id: Number(k.id), ad: k.ad, partner: k.partner, ayar: k.ayar, sayi: Number(k.sayi),
+      tur: ayar.get('tur') || 'katilim', etkinlik: ayar.get('etkinlik') ? Number(ayar.get('etkinlik')) : null,
+      olusturan: k.olusturan_ad || '', guncelleyen: k.guncelleyen_ad || '', created: k.created, updated: k.updated,
+    };
+  };
+  const kayitGetir = async (id, user) => {
+    const k = await db.get(`SELECT ${KAYIT_SUTUN} FROM ${KAYIT_KAYNAK} WHERE k.id=?`, [id]);
+    /* Başka kurumun kaydı "yok" sayılır: varlığı da sızmasın. */
+    return k && (user.koordinator || k.partner === user.partner) ? k : null;
+  };
+
+  /** Gövdeden ad + ayarı okur, belgeyi üreterek doğrular. */
+  const kayitGovdesi = async (req, user, dil) => {
+    const g = await body(req);
+    const ad = kayitAdiniCoz(g.ad);
+    const ayar = kayitAyariniCoz(g.ayar);
+    const { belgeler } = await uret(ayar, user, dil);
+    return { ad, ayar: ayar.toString(), sayi: belgeler.length };
+  };
+
+  async function kayitlar({ req, res, user, dil, id }) {
+    if (!id && req.method === 'GET') {
+      const satirlar = await db.all(
+        `SELECT ${KAYIT_SUTUN} FROM ${KAYIT_KAYNAK} ${user.koordinator ? '' : 'WHERE k.partner=?'} ORDER BY k.updated DESC, k.id DESC`,
+        user.koordinator ? [] : [user.partner]);
+      return send(res, 200, { kayitlar: satirlar.map(kayitCikti) });
+    }
+    if (!id && req.method === 'POST') {
+      const { ad, ayar, sayi } = await kayitGovdesi(req, user, dil);
+      const simdi = new Date().toISOString();
+      const yeni = await db.insert(
+        'INSERT INTO belge_kayit (ad,partner,ayar,sayi,olusturan,guncelleyen,created,updated) VALUES (?,?,?,?,?,?,?,?)',
+        [ad, user.partner, ayar, sayi, user.id, user.id, simdi, simdi]);
+      return send(res, 201, { kayit: kayitCikti(await kayitGetir(Number(yeni), user)) });
+    }
+    if (!id) return send(res, 405, { error: 'genel.hata' });
+
+    const kayit = await kayitGetir(id, user);
+    if (!kayit) return send(res, 404, { error: 'belge.hata.kayitYok' });
+    if (req.method === 'GET') return send(res, 200, { kayit: kayitCikti(kayit) });
+    if (req.method === 'PUT') {
+      const { ad, ayar, sayi } = await kayitGovdesi(req, user, dil);
+      await db.run('UPDATE belge_kayit SET ad=?, ayar=?, sayi=?, guncelleyen=?, updated=? WHERE id=?',
+        [ad, ayar, sayi, user.id, new Date().toISOString(), id]);
+      return send(res, 200, { kayit: kayitCikti(await kayitGetir(id, user)) });
+    }
+    if (req.method === 'DELETE') {
+      await db.run('DELETE FROM belge_kayit WHERE id=?', [id]);
+      return send(res, 200, { ok: true });
+    }
+    return send(res, 405, { error: 'genel.hata' });
+  }
+
+  return async function handle({ req, res, url, user, dil }) {
+    const kayitYolu = url.pathname.match(/^\/api\/belge\/kayitlar(?:\/(\d{1,9}))?$/);
+    if (!(url.pathname === '/api/belge' && req.method === 'GET') && !kayitYolu) return;
+    if (!user) return send(res, 401, { error: 'belge.hata.giris' });
+    try {
+      if (kayitYolu) return await kayitlar({ req, res, user, dil, id: kayitYolu[1] ? Number(kayitYolu[1]) : null });
+      return send(res, 200, await uret(url.searchParams, user, dil));
+    } catch (err) {
+      if (err instanceof YetkiHatasi) return send(res, 403, { error: 'belge.hata.yetki' });
+      throw err;
+    }
   };
 }

@@ -207,6 +207,55 @@ test('belge: giriş şart, ortak yalnızca kendi kurumuna üretir', async () => 
   assert.equal((await koordinator.iste(`/api/belge?tur=katilim&alicilar=uye:${geoUye}`)).durum, 400);
 });
 
+test('kayıtlı belge: kaydet, aç, düzenle, sil — ortak yalnızca kendi kurumununkine dokunur', async () => {
+  const koordinator = await istemci(sunucu, KOORDINATOR);
+  const ortak = await istemci(sunucu, ORTAK);
+  const ortak2 = await istemci(sunucu, ORTAK2);
+  const ayar = 'tur=tesekkur&alicilar=kurum:geoclub&imzaAd=Imza%20Sahibi&metin=Merhaba%20[Kurum%20Ad%C4%B1]';
+
+  /* Anonim kayıtlara ulaşamaz. */
+  assert.equal((await (await istemci(sunucu)).iste('/api/belge/kayitlar')).durum, 401);
+
+  /* Ortak kendi kurumuna kaydeder; ad zorunlu; yetkisi olmayan alıcı kaydedilemez. */
+  const yeni = await ortak.iste('/api/belge/kayitlar', { method: 'POST', body: { ad: 'GEO teşekkür', ayar } });
+  assert.equal(yeni.durum, 201, JSON.stringify(yeni.veri));
+  assert.equal(yeni.veri.kayit.sayi, 1);
+  assert.equal(yeni.veri.kayit.tur, 'tesekkur');
+  const id = yeni.veri.kayit.id;
+  assert.equal((await ortak.iste('/api/belge/kayitlar', { method: 'POST', body: { ad: ' ', ayar } })).durum, 400);
+  assert.equal((await ortak.iste('/api/belge/kayitlar', { method: 'POST', body: { ad: 'HBV', ayar: 'tur=katilim&alicilar=kurum:hbv&imzaAd=X' } })).durum, 403);
+  /* Üretilemeyen ayar (imzasız) kaydedilemez. */
+  assert.equal((await ortak.iste('/api/belge/kayitlar', { method: 'POST', body: { ad: 'İmzasız', ayar: 'tur=katilim&alicilar=kurum:geoclub' } })).durum, 400);
+
+  /* Açılan kayıt ayarı aynen geri verir; o ayarla belge yeniden üretilir. */
+  const acilan = await ortak.iste(`/api/belge/kayitlar/${id}`);
+  assert.equal(acilan.durum, 200);
+  const uretilen = await ortak.iste('/api/belge?' + acilan.veri.kayit.ayar);
+  assert.equal(uretilen.durum, 200);
+  assert.match(uretilen.veri.belgeler[0].govde, /^Merhaba .*GEO CLUB$/);
+
+  /* Başka kurumun ortağı göremez, açamaz, değiştiremez, silemez. */
+  assert.equal((await ortak2.iste('/api/belge/kayitlar')).veri.kayitlar.length, 0);
+  assert.equal((await ortak2.iste(`/api/belge/kayitlar/${id}`)).durum, 404);
+  assert.equal((await ortak2.iste(`/api/belge/kayitlar/${id}`, { method: 'PUT', body: { ad: 'x', ayar } })).durum, 404);
+  assert.equal((await ortak2.iste(`/api/belge/kayitlar/${id}`, { method: 'DELETE' })).durum, 404);
+
+  /* Koordinatör hepsini görür ve düzenler; düzenleyen kaydedilir. */
+  assert.ok((await koordinator.iste('/api/belge/kayitlar')).veri.kayitlar.some(r => r.id === id));
+  const duzenle = await koordinator.iste(`/api/belge/kayitlar/${id}`, {
+    method: 'PUT', body: { ad: 'GEO teşekkür (güncel)', ayar: ayar.replace('tesekkur', 'katilim') + '&bos=2' },
+  });
+  assert.equal(duzenle.durum, 200, JSON.stringify(duzenle.veri));
+  assert.equal(duzenle.veri.kayit.ad, 'GEO teşekkür (güncel)');
+  assert.equal(duzenle.veri.kayit.tur, 'katilim');
+  assert.equal(duzenle.veri.kayit.sayi, 3, '1 kurum + 2 isimsiz yedek');
+  assert.equal(duzenle.veri.kayit.partner, 'geoclub', 'kayıt kurumunda kalır');
+
+  /* Ortak kendi kaydını siler; silinen kayıt bulunmaz. */
+  assert.equal((await ortak.iste(`/api/belge/kayitlar/${id}`, { method: 'DELETE' })).durum, 200);
+  assert.equal((await ortak.iste(`/api/belge/kayitlar/${id}`)).durum, 404);
+});
+
 test('ekip: üye sistemdeki bir hesaptır ve yalnızca kendi kurumunun ekibine girer', async () => {
   const ortak2 = await istemci(sunucu, ORTAK2);            // CECF
   const adaylar = (await ortak2.iste('/api/ekip')).veri.adaylar;

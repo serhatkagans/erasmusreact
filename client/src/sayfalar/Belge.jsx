@@ -1,6 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { durum, t, iste, ortakAdi, ortakKisa, yerAdi, etkinlikBaslik, tarihAraligi } from '../ortak.js';
 import { useBaslik } from '../bilesenler/Kabuk.jsx';
+import { onayla, bildir } from '../bilesenler/Kutu.jsx';
+
+/** Formdaki metin alanları: kayıt açılınca bunlar ayardan doldurulur. */
+const METIN_ALANLARI = ['imzaAd', 'imzaUnvan', 'baslik', 'giris', 'metin'];
+
+/** Formu `/api/belge` sorgusuna çevirir; hazırlama ve kaydetme paylaşır. */
+function parametreler(f, secim) {
+  const p = new URLSearchParams({ tur: f.tur.value });
+  if (f.etkinlik.value) p.set('etkinlik', f.etkinlik.value);
+  if (secim.size) p.set('alicilar', [...secim].join(','));
+  if (f.ad.value.trim()) p.set('ad', f.ad.value);
+  if (Number(f.bos.value) > 0) p.set('bos', f.bos.value);
+  for (const alan of METIN_ALANLARI) if (f[alan].value.trim()) p.set(alan, f[alan].value);
+  return p;
+}
+
+const zamanYaz = iso => new Intl.DateTimeFormat(durum.dil, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
 
 /**
  * Katılım ve teşekkür belgeleri.
@@ -29,12 +46,22 @@ export default function Belge() {
   const [bosSayi, setBosSayi] = useState(0);
   const [cikti, setCikti] = useState(null);
   const [hazirlaniyor, setHazirlaniyor] = useState(false);
+  /* Kayıtlı belgeler (13 Kasım 2026): ayarlar ad verilerek saklanır; açılan
+     kayıt forma doldurulur, "Değişiklikleri kaydet" onu günceller. */
+  const [kayitlar, setKayitlar] = useState(null);
+  const [acikKayit, setAcikKayit] = useState(null);
+  const [kayitAdi, setKayitAdi] = useState('');
+  const [kaydediliyor, setKaydediliyor] = useState(false);
+  const [kaydetIsaret, setKaydetIsaret] = useState(false);
+  const [yeniKayit, setYeniKayit] = useState(false);
   const formRef = useRef(null);
   const ciktiRef = useRef(null);
 
+  const kayitlariYukle = () => iste('api/belge/kayitlar').then(v => setKayitlar(v.kayitlar));
+
   useEffect(() => {
     if (!k) return;
-    Promise.all([iste('api/ekip'), iste('api/etkinlikler')])
+    Promise.all([iste('api/ekip'), iste('api/etkinlikler'), kayitlariYukle()])
       .then(([ekip, et]) => setVeri({ uyeler: ekip.uyeler, etkinlikler: et.etkinlikler }))
       .catch(err => setHata(err.message));
   }, [k]);
@@ -63,22 +90,90 @@ export default function Belge() {
 
   const kisiDegerleri = veri ? gorunurOrtaklar().flatMap(o => veri.uyeler.filter(u => u.partner === o.id && u.aktif).map(u => `uye:${u.id}`)) : [];
 
-  const hazirla = async olay => {
-    olay.preventDefault();
-    const f = olay.currentTarget;
+  const uret = async p => {
     setHata('');
-    const p = new URLSearchParams({ tur: f.tur.value });
-    if (f.etkinlik.value) p.set('etkinlik', f.etkinlik.value);
-    if (secili.size) p.set('alicilar', [...secili].join(','));
-    if (f.ad.value.trim()) p.set('ad', f.ad.value);
-    if (Number(f.bos.value) > 0) p.set('bos', f.bos.value);
-    if (f.imzaAd.value.trim()) p.set('imzaAd', f.imzaAd.value);
-    if (f.imzaUnvan.value.trim()) p.set('imzaUnvan', f.imzaUnvan.value);
-    if (f.metin.value.trim()) p.set('metin', f.metin.value);
-    if (f.baslik.value.trim()) p.set('baslik', f.baslik.value);
-    if (f.giris.value.trim()) p.set('giris', f.giris.value);
     setHazirlaniyor(true);
     try { setCikti(await iste('api/belge?' + p)); } catch (err) { setHata(err.message); } finally { setHazirlaniyor(false); }
+  };
+
+  /* Hazırlanan her deste KAYDEDİLMEZ (kullanıcı isteği, 13 Kasım 2026):
+     deneme baskıları listeyi doldurmasın. Yalnızca "Bu belgeleri kaydet"
+     işaretliyse önce kaydedilir, sonra hazırlanır; işaret her kayıttan
+     sonra kalkar ki sonraki denemeler kendiliğinden kaydedilmesin. */
+  const hazirla = async olay => {
+    olay.preventDefault();
+    const p = parametreler(olay.currentTarget, secili);
+    if (kaydetIsaret && !(await kaydet(p))) return;
+    uret(p);
+  };
+
+  /** Açık kayıt varsa ve "yeni kayıt" seçilmediyse onu günceller. Başarıda true. */
+  const kaydet = async p => {
+    setHata('');
+    setKaydediliyor(true);
+    try {
+      const guncelle = acikKayit && !yeniKayit;
+      const { kayit } = await iste(guncelle ? `api/belge/kayitlar/${acikKayit.id}` : 'api/belge/kayitlar', {
+        method: guncelle ? 'PUT' : 'POST',
+        body: JSON.stringify({ ad: kayitAdi, ayar: p.toString() }),
+      });
+      setAcikKayit(kayit);
+      setKayitAdi(kayit.ad);
+      setKaydetIsaret(false);
+      setYeniKayit(false);
+      await kayitlariYukle();
+      bildir(t('belge.kayit.kaydedildi'));
+      return true;
+    } catch (err) { setHata(err.message); return false; } finally { setKaydediliyor(false); }
+  };
+
+  /** Kaydı forma doldurur ve belgeleri hemen hazırlar: açılınca yazdırmaya hazır. */
+  const kayitAc = async ozet => {
+    setHata('');
+    try {
+      const { kayit } = await iste(`api/belge/kayitlar/${ozet.id}`);
+      const ayar = new URLSearchParams(kayit.ayar);
+      const f = formRef.current;
+      f.tur.value = ayar.get('tur') || 'katilim';
+      f.etkinlik.value = ayar.get('etkinlik') || '';
+      /* Kayıttan sonra ekipten çıkarılan kişi seçime alınmaz; söylenir. */
+      const gecerli = new Set([...kisiDegerleri, ...gorunurOrtaklar().map(o => `kurum:${o.id}`)]);
+      const istenen = (ayar.get('alicilar') || '').split(',').filter(Boolean);
+      const secim = new Set(istenen.filter(a => gecerli.has(a)));
+      const serbest = ayar.getAll('ad').join('\n');
+      f.ad.value = serbest;
+      f.bos.value = ayar.get('bos') || '0';
+      for (const alan of METIN_ALANLARI) f[alan].value = ayar.get(alan) || '';
+      setSecili(secim);
+      setSerbestSayi(serbest.split('\n').filter(s => s.trim()).length);
+      setBosSayi(Number(ayar.get('bos')) || 0);
+      setAcikKayit(kayit);
+      setKayitAdi(kayit.ad);
+      /* Açmak kaydetmek değildir: değişiklik ancak işaretlenince yazılır. */
+      setKaydetIsaret(false);
+      setYeniKayit(false);
+      const eksik = istenen.length - secim.size;
+      if (eksik) bildir(t('belge.kayit.eksik', { n: eksik }), 'hata');
+      f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      await uret(parametreler(f, secim));
+    } catch (err) { setHata(err.message); }
+  };
+
+  const kayitSil = async ozet => {
+    if (!(await onayla(t('belge.kayit.silSor', { ad: ozet.ad }), { evet: t('belge.kayit.sil'), tehlike: true }))) return;
+    try {
+      await iste(`api/belge/kayitlar/${ozet.id}`, { method: 'DELETE' });
+      if (acikKayit?.id === ozet.id) { setAcikKayit(null); setKayitAdi(''); }
+      await kayitlariYukle();
+      bildir(t('belge.kayit.silindi'));
+    } catch (err) { bildir(err.message, 'hata'); }
+  };
+
+  const kayittanCik = () => { setAcikKayit(null); setKayitAdi(''); setKaydetIsaret(false); setYeniKayit(false); };
+
+  const etkinlikAdi = id => {
+    const e = veri?.etkinlikler.find(x => x.id === id);
+    return e ? etkinlikBaslik(e) : t('belge.kayit.proje');
   };
 
   return (
@@ -97,6 +192,35 @@ export default function Belge() {
           </section>
         )}
         {!veri && hata && <p className="hata" role="alert">{hata}</p>}
+
+        {veri && kayitlar && (
+          <section className="pano belge-kayitlar" id="belge-kayitlar">
+            <div className="pano-bas"><h2>{t('belge.kayitlar.baslik')}</h2></div>
+            <div className="belge-bant">
+              <p className="ipucu">{kayitlar.length ? t('belge.kayitlar.ipucu') : t('belge.kayitlar.bos')}</p>
+              {!!kayitlar.length && (
+                <ul className="belge-kayit-listesi">
+                  {kayitlar.map(r => (
+                    <li key={r.id} className={`belge-kayit${acikKayit?.id === r.id ? ' belge-kayit--acik' : ''}`}>
+                      <div className="belge-kayit-bilgi">
+                        <strong>{r.ad}</strong>
+                        <small>
+                          {[t(`belge.tur.${r.tur}`), etkinlikAdi(r.etkinlik), t('belge.kayit.sayi', { n: r.sayi }),
+                            k.koordinator && ortakKisa(r.partner)].filter(Boolean).join(' · ')}
+                        </small>
+                        <small>{[zamanYaz(r.updated), r.guncelleyen || r.olusturan].filter(Boolean).join(' · ')}</small>
+                      </div>
+                      <div className="belge-kayit-eylem">
+                        <button type="button" className="dugme dugme-ikincil" onClick={() => kayitAc(r)}>{t('belge.kayit.ac')}</button>
+                        <button type="button" className="metin-bag belge-kayit-sil" onClick={() => kayitSil(r)}>{t('belge.kayit.sil')}</button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Panel ŞERİTLERDEN kurulur. Üç şerit = üç soru: ne tür belge, kime,
             kimin imzasıyla. */}
@@ -177,12 +301,45 @@ export default function Belge() {
               </label>
             </section>
 
+            {/* Kaydetme isteğe bağlıdır: işaretlenmezse deste yalnızca
+                hazırlanır (deneme). İşaretliyken ad zorunlu; açık kayıt varsa
+                onu güncellemek ya da yeni kayıt açmak seçilir. */}
+            <div className="belge-kaydet">
+              {acikKayit && (
+                <p className="belge-kaydet-acik">
+                  <span>{t('belge.kayit.acik', { ad: acikKayit.ad })}</span>
+                  <button type="button" className="metin-bag" onClick={kayittanCik}>{t('belge.kayit.kapat')}</button>
+                </p>
+              )}
+              <label className="onay belge-kaydet-isaret">
+                <input type="checkbox" id="belge-kaydet-isaret" checked={kaydetIsaret} onChange={o => setKaydetIsaret(o.target.checked)} />
+                <span>{t('belge.kayit.kaydet')}</span>
+              </label>
+              {!kaydetIsaret && <small className="ipucu belge-kaydet-ipucu">{t('belge.kayit.kaydetIpucu')}</small>}
+              {kaydetIsaret && (
+                <div className="belge-kaydet-ayrinti">
+                  <label className="alan"><span>{t('belge.kayit.ad')}</span>
+                    <input id="belge-kayit-ad" maxLength={120} required value={kayitAdi} placeholder={t('belge.kayit.adIpucu')}
+                      onChange={o => setKayitAdi(o.target.value)} /></label>
+                  {acikKayit && (
+                    <div className="belge-kaydet-secenek" role="radiogroup">
+                      <label className="onay"><input type="radio" name="kayitBicimi" checked={!yeniKayit} onChange={() => setYeniKayit(false)} />
+                        <span>{t('belge.kayit.guncelle')}</span></label>
+                      <label className="onay"><input type="radio" name="kayitBicimi" checked={yeniKayit} onChange={() => setYeniKayit(true)} />
+                        <span>{t('belge.kayit.farkli')}</span></label>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="belge-eylem">
-              <button type="submit" className="dugme dugme-birincil" disabled={hazirlaniyor}>{t('belge.hazirla')}</button>
+              <button type="submit" className="dugme dugme-birincil" disabled={hazirlaniyor || kaydediliyor}>
+                {t(kaydetIsaret ? 'belge.kayit.hazirlaKaydet' : 'belge.hazirla')}</button>
               <button type="button" id="belge-temizle" className="metin-bag" onClick={() => {
                 /* reset() alanları varsayılana döndürür: imza yine koordinatörünki. */
                 formRef.current.reset();
-                setCikti(null); setHata(''); setSecili(new Set()); setSerbestSayi(0); setBosSayi(0);
+                setCikti(null); setHata(''); setSecili(new Set()); setSerbestSayi(0); setBosSayi(0); kayittanCik();
               }}>{t('belge.temizle')}</button>
               <p className="hata" id="belge-hata" role="alert">{hata}</p>
             </div>

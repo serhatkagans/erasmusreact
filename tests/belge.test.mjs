@@ -4,7 +4,7 @@ import { ValidationError, PROJECT } from '../lib/data.mjs';
 import {
   belgeTuruMu, belgeMetniUret, aliciAdiniCoz, imzaBilgisiniCoz,
   imzaUnvaniOner, ozelMetniCoz, topluAlicilariSec, MAX_BELGE, yerTutuculariDoldur,
-  bosSayisiniCoz, BOS_ALAN,
+  bosSayisiniCoz, BOS_ALAN, kayitAyariniCoz, kayitAdiniCoz,
 } from '../lib/belge.mjs';
 import { metinler, donemBilgisi, tarihAraligi } from '../lib/rapor.mjs';
 import { loadLocale } from '../lib/i18n.mjs';
@@ -248,4 +248,28 @@ test('isimsiz yedek belge: sayı doğrulanır, deste sonuna eklenir, ad boş bas
   assert.equal(b.altAd, '');
   assert.equal(b.govde, `from ${BOS_ALAN}, ${BOS_ALAN}`);
   assert.equal(belgeMetniUret({ tur: 'katilim', ad: 'Ana', t: k => k }).bos, undefined);
+});
+
+test('kayıt ayarı: yalnızca belge alanları, sabit sırada saklanır', () => {
+  /* Bilinmeyen alan atılır, boş alan atılır, sıra sabitlenir; tür yoksa katılım. */
+  const a = kayitAyariniCoz('metin=Merhaba&uydurma=1&alicilar=uye:3,kurum:hbv&imzaAd=Ad&baslik=&ad=Bir&ad=Iki');
+  assert.equal(a.toString(), 'tur=katilim&alicilar=uye%3A3%2Ckurum%3Ahbv&ad=Bir&ad=Iki&imzaAd=Ad&metin=Merhaba');
+  assert.equal(kayitAyariniCoz(a.toString()).toString(), a.toString(), 'ikinci kez çözmek değiştirmez');
+  reddeder(kayitAyariniCoz, '');
+  reddeder(kayitAyariniCoz, 'metin=' + 'x'.repeat(20001));
+});
+
+test('kayıt adı zorunlu ve sınırlı', () => {
+  assert.equal(kayitAdiniCoz('  TPM1   Bükreş '), 'TPM1 Bükreş');
+  reddeder(kayitAdiniCoz, '  ');
+  reddeder(kayitAdiniCoz, 'A'.repeat(121));
+});
+
+test('kayıt anahtarlarının çevirisi her dilde var', async () => {
+  const anahtarlar = ['belge.kayitlar.baslik', 'belge.kayit.kaydet', 'belge.kayit.kaydetIpucu', 'belge.kayit.hazirlaKaydet', 'belge.kayit.silSor', 'belge.kayit.eksik',
+    'belge.hata.kayit', 'belge.hata.kayitAd', 'belge.hata.kayitAdUzun', 'belge.hata.kayitYok'];
+  for (const dil of ['tr', 'en', 'da', 'it', 'pt', 'ro']) {
+    const sozluk = await loadLocale(dil);
+    for (const a of anahtarlar) assert.ok(sozluk[a], `${dil}: ${a}`);
+  }
 });
