@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 790 150" role="img" aria-label="Co-funded by the European Union">
+  <!-- "Co-funded by the European Union" logosu, vektör olarak.
+       Önceki ab-ortak-finanse.webp yalnızca 149×31 pikseldi; sertifikada
+       büyütülünce bulanıklaşıyordu. Bayrak ab-amblem.svg ile aynı resmî
+       oranlarda (3:2, yükseklik 150 → ölçek 150/540). İbare resmî logodaki
+       gibi İngilizce ve iki satır; Arial Bold. -->
+  <defs>
+    <polygon id="y" fill="#FC0"
+      points="0,-30 6.74,-9.27 28.53,-9.27 10.90,3.54 17.63,24.27 0,11.46 -17.63,24.27 -10.90,3.54 -28.53,-9.27 -6.74,-9.27"/>
+  </defs>
+  <g transform="scale(0.27778)">
+    <rect width="810" height="540" fill="#039"/>
+    <use href="#y" x="405" y="90"/>
+    <use href="#y" x="495" y="114.12"/>
+    <use href="#y" x="561" y="180"/>
+    <use href="#y" x="585" y="270"/>
+    <use href="#y" x="561" y="360"/>
+    <use href="#y" x="495" y="425.88"/>
+    <use href="#y" x="405" y="450"/>
+    <use href="#y" x="315" y="425.88"/>
+    <use href="#y" x="249" y="360"/>
+    <use href="#y" x="225" y="270"/>
+    <use href="#y" x="249" y="180"/>
+    <use href="#y" x="315" y="114.12"/>
+  </g>
+  <g fill="#039" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="56">
+    <text x="255" y="64">Co-funded by</text>
+    <text x="255" y="130">the European Union</text>
+  </g>
+</svg>

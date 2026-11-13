@@ -291,9 +291,9 @@ function AltBant({ logolar }) {
         </div>
         {logolar && (
           <div className="alt-logolar">
-            <img src="ab-ortak-finanse.webp" aria-label={t('ab.logo.ortak')} alt="" width="149" height="31" />
-            <img src="ulusal-ajans.webp" aria-label={t('ab.logo.ajans')} alt="" width="149" height="78" />
-            <img src="ab-baskanligi.webp" aria-label={t('ab.logo.baskanlik')} alt="" width="149" height="82" />
+            <img src="ab-ortak-finanse.svg" aria-label={t('ab.logo.ortak')} alt="" width="163" height="31" />
+            <img src="ulusal-ajans.png" aria-label={t('ab.logo.ajans')} alt="" width="149" height="78" />
+            <img src="ab-baskanligi.png" aria-label={t('ab.logo.baskanlik')} alt="" width="149" height="82" />
           </div>
         )}
         <div className="alt-kunye">

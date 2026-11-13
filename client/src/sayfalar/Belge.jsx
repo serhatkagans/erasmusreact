@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { durum, t, iste, ortakAdi, ortakKisa, yerAdi, etkinlikBaslik, tarihAraligi, tamTarih } from '../ortak.js';
+import { durum, t, iste, ortakAdi, ortakKisa, yerAdi, etkinlikBaslik, tarihAraligi } from '../ortak.js';
 import { useBaslik } from '../bilesenler/Kabuk.jsx';
 
 /**
@@ -26,6 +26,7 @@ export default function Belge() {
   const [hata, setHata] = useState('');
   const [secili, setSecili] = useState(() => new Set());
   const [serbestSayi, setSerbestSayi] = useState(0);
+  const [bosSayi, setBosSayi] = useState(0);
   const [cikti, setCikti] = useState(null);
   const [hazirlaniyor, setHazirlaniyor] = useState(false);
   const formRef = useRef(null);
@@ -39,6 +40,20 @@ export default function Belge() {
   }, [k]);
 
   useEffect(() => { if (cikti) ciktiRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [cikti]);
+
+  /* Tarayıcının yazdırmada eklediği adres, sayfa numarası ve tarih satırları
+     sayfa kenar boşluğuna basılır. Adlı sayfa (@page belge, belge.css) boşluğu
+     sıfırlasa da Chrome bu satırları VARSAYILAN sayfanın boşluğuna göre
+     koyuyor; PDF'te çerçevenin üstünde ve altında kalıyorlardı (kullanıcı
+     bildirimi, 13 Kasım 2026). Varsayılan sayfa da yalnızca bu sayfa açıkken
+     sıfırlanır: belge.css'e genel bir @page yazmak, sayfa değişince başka
+     sayfaların (rapor, bülten) yazdırmasını da bozardı. */
+  useEffect(() => {
+    const stil = document.createElement('style');
+    stil.textContent = '@media print { @page { size: A4 landscape; margin: 0 } }';
+    document.head.appendChild(stil);
+    return () => stil.remove();
+  }, []);
 
   const degistir = (degerler, isaretle) => setSecili(s => {
     const yeni = new Set(s);
@@ -56,9 +71,12 @@ export default function Belge() {
     if (f.etkinlik.value) p.set('etkinlik', f.etkinlik.value);
     if (secili.size) p.set('alicilar', [...secili].join(','));
     if (f.ad.value.trim()) p.set('ad', f.ad.value);
+    if (Number(f.bos.value) > 0) p.set('bos', f.bos.value);
     if (f.imzaAd.value.trim()) p.set('imzaAd', f.imzaAd.value);
     if (f.imzaUnvan.value.trim()) p.set('imzaUnvan', f.imzaUnvan.value);
     if (f.metin.value.trim()) p.set('metin', f.metin.value);
+    if (f.baslik.value.trim()) p.set('baslik', f.baslik.value);
+    if (f.giris.value.trim()) p.set('giris', f.giris.value);
     setHazirlaniyor(true);
     try { setCikti(await iste('api/belge?' + p)); } catch (err) { setHata(err.message); } finally { setHazirlaniyor(false); }
   };
@@ -87,7 +105,7 @@ export default function Belge() {
             <div className="pano-bas">
               <h2>{t('belge.form.baslik')}</h2>
               <div className="pano-bas-sag">
-                <span className="belge-rozet" id="belge-secim-sayisi">{t('belge.secim.sayi', { n: secili.size + serbestSayi })}</span>
+                <span className="belge-rozet" id="belge-secim-sayisi">{t('belge.secim.sayi', { n: secili.size + serbestSayi + bosSayi })}</span>
               </div>
             </div>
 
@@ -126,16 +144,33 @@ export default function Belge() {
                 <textarea name="ad" id="belge-serbest" rows={2} placeholder={t('belge.serbest.ipucu')}
                   onChange={o => setSerbestSayi(o.target.value.split('\n').filter(s => s.trim()).length)} />
               </label>
+              {/* İsimsiz yedek: adı elle yazılacak boş belge (13 Kasım 2026).
+                  Tek başına da üretilebilir; kişi seçmek gerekmez. */}
+              <label className="alan belge-bos-alan"><span>{t('belge.bos')}</span>
+                <input type="number" name="bos" id="belge-bos" min={0} max={200} step={1} defaultValue={0} inputMode="numeric"
+                  onChange={o => setBosSayi(Math.max(0, Math.min(200, Math.floor(Number(o.target.value) || 0))))} />
+                <small className="ipucu">{t('belge.bos.ipucu')}</small>
+              </label>
             </fieldset>
 
             <section className="belge-bant">
               <h3 className="belge-adim">{t('belge.adim.imza')}</h3>
               <div className="form-izgara belge-ikili">
-                <label className="alan"><span>{t('belge.imza.ad')}</span><input name="imzaAd" maxLength={120} required defaultValue={k.ad || ''} /></label>
-                {/* Unvan boş bırakılabilir: sunucu aynı öneriyi kullanır, yer tutucu onu gösterir. */}
+                {/* Varsayılan imza proje koordinatörününkidir (kullanıcı isteği,
+                    13 Kasım 2026); oturumdaki kişinin adı gelmez. Alanlar
+                    değiştirilebilir. Unvan silinirse sunucu öneriyi kullanır,
+                    yer tutucu onu gösterir. */}
+                <label className="alan"><span>{t('belge.imza.ad')}</span><input name="imzaAd" maxLength={120} required defaultValue={IMZA.ad} /></label>
                 <label className="alan"><span>{t('belge.imza.unvan')}</span>
-                  <input name="imzaUnvan" id="belge-imza-unvan" maxLength={120}
+                  <input name="imzaUnvan" id="belge-imza-unvan" maxLength={120} defaultValue={IMZA.unvan}
                     placeholder={t(k.koordinator ? 'belge.imza.unvan.koordinator' : 'belge.imza.unvan.ortak', { kurum: ortakAdi(k.partner) })} /></label>
+              </div>
+              {/* Başlık ve giriş satırı boşsa sözlükteki kalıp basılır. */}
+              <div className="form-izgara belge-ikili">
+                <label className="alan"><span>{t('belge.baslik.alan')}</span>
+                  <input name="baslik" id="belge-baslik" maxLength={120} placeholder={t('belge.tur.katilim')} /></label>
+                <label className="alan"><span>{t('belge.giris.alan')}</span>
+                  <input name="giris" id="belge-giris" maxLength={200} placeholder={t('belge.sunulur')} /></label>
               </div>
               <label className="alan"><span>{t('belge.metin')}</span>
                 <textarea name="metin" id="belge-metin" rows={3} maxLength={1200} placeholder={t('belge.metin.ipucu')} />
@@ -145,9 +180,9 @@ export default function Belge() {
             <div className="belge-eylem">
               <button type="submit" className="dugme dugme-birincil" disabled={hazirlaniyor}>{t('belge.hazirla')}</button>
               <button type="button" id="belge-temizle" className="metin-bag" onClick={() => {
+                /* reset() alanları varsayılana döndürür: imza yine koordinatörünki. */
                 formRef.current.reset();
-                formRef.current.imzaAd.value = '';
-                setCikti(null); setHata(''); setSecili(new Set()); setSerbestSayi(0);
+                setCikti(null); setHata(''); setSecili(new Set()); setSerbestSayi(0); setBosSayi(0);
               }}>{t('belge.temizle')}</button>
               <p className="hata" id="belge-hata" role="alert">{hata}</p>
             </div>
@@ -166,7 +201,7 @@ export default function Belge() {
           </div>
           <p className="ipucu" id="belge-yazdir-ipucu">{t('belge.yazdir.ipucu')}</p>
           <div id="belge-listesi" className="belge-listesi">
-            {cikti.belgeler.map((b, i) => <Kagit key={`${cikti.etkinlik?.id ?? "proje"}-${i}`} belge={b} imza={cikti.imza} kunye={cikti.kunye} evSahibi={cikti.etkinlik?.evSahibi} />)}
+            {cikti.belgeler.map((b, i) => <Kagit key={`${cikti.etkinlik?.id ?? "proje"}-${i}`} belge={b} imza={cikti.imza} kunye={cikti.kunye} />)}
           </div>
         </div>
       )}
@@ -209,25 +244,12 @@ function KurumKarti({ o, uyeler, secili, degistir }) {
  * adın altındaki çizgide, logodaki nokta bulutu köşelerde, logo işaretinin
  * kendisi filigranda ve mühürde. Süsler `aria-hidden`: ekran okuyucu yalnızca
  * belgenin metnini okur.
- *
- * Düzenleme tarihi belgeyi ÜRETEN gündür (bugün): belge saklanmadığı için
- * (bkz. lib/belge.mjs) her yazdırma kendi gününü taşır.
  */
-const bugun = () => new Date().toISOString().slice(0, 10);
 
-function Kagit({ belge, imza, kunye, evSahibi }) {
-  /* Alt ortadaki kurum: buluşmaya yazılan belgede ev sahibi, öteki
-     belgelerde (proje geneli, fikri çıktı) koordinatör kurum. Sıra bir
-     DÜŞÜŞ ZİNCİRİDİR: ev sahibinin logo dosyası henüz yoksa koordinatöre,
-     onun da yoksa proje mührüne geçilir. (Önceden ev sahibi logosuz
-     kalınca doğrudan mühre düşülüyor, HBV logosu da kayboluyordu.) */
-  const adaylar = [
-    evSahibi && { ...evSahibi, etiket: 'belge.evsahibi' },
-    kunye.koordinator && evSahibi?.id !== kunye.koordinator.id && { ...kunye.koordinator, etiket: 'belge.koordinatorKurum' },
-  ].filter(Boolean);
-  const [sira, setSira] = useState(0);
-  const kurum = adaylar[sira];
-  const kurumLogo = !!kurum;
+/** Belgelerin varsayılan imzası: proje koordinatörü (HBV). */
+const IMZA = { ad: 'Prof. Dr. Ahmet Kibar ÇETİN', unvan: 'Project Coordinator' };
+
+function Kagit({ belge, imza, kunye }) {
   return (
     <article className={`belge belge--${belge.tur}`}>
       <div className="belge-susler" aria-hidden="true">
@@ -239,55 +261,41 @@ function Kagit({ belge, imza, kunye, evSahibi }) {
         <img className="belge-filigran" src="belge-logo.png" alt="" />
       </div>
 
+      {/* Yerleşim dosyalar/Certificates_E-YOUTHPRENEUR (1).pdf örneğine göre
+          (13 Kasım 2026): proje logosu üstte ortada, resmî logolar en altta. */}
       <header className="belge-ust">
         <img className="belge-logo" src="belge-logo-tam.png" alt={kunye.proje} />
-        {/* Üçlü resmî logo: AB Başkanlığı, Ulusal Ajans, AB eş finansmanı
-            (kullanıcının istediği sıra, 24 Ekim 2026). Görünürlük kuralı
-            gereği belgede de var. */}
-        <div className="belge-ab">
-          <img src="ab-baskanligi.webp" alt={t('ab.logo.baskanlik')} />
-          <img src="ulusal-ajans.webp" alt={t('ab.logo.ajans')} />
-          <img src="ab-ortak-finanse.webp" alt={t('ab.logo.ortak')} />
-        </div>
       </header>
 
       <div className="belge-govde">
-        <p className="belge-program">{kunye.program}</p>
+        {/* Başlığın üstündeki "Erasmus+ Programme · … (KA220-YOU)" satırı
+            kaldırıldı (kullanıcı isteği, 13 Kasım 2026): program ve proje
+            numarası belge metninde zaten geçiyor. */}
         <h2 className="belge-baslik">{belge.baslik}</h2>
-        <p className="belge-sunulur">{t('belge.sunulur')}</p>
-        <p className="belge-ad">{belge.ad}</p>
-        <span className="belge-ad-cizgi" aria-hidden="true" />
+        <p className="belge-sunulur">{belge.giris || t('belge.sunulur')}</p>
+        {/* İsimsiz yedekte ad yerine elle yazılacak boş çizgi. */}
+        {belge.bos
+          ? <p className="belge-ad belge-ad--bos" aria-label={t('belge.bos')} />
+          : <p className="belge-ad">{belge.ad}</p>}
         {belge.altAd && <p className="belge-altad">{belge.altAd}</p>}
         <p className="belge-metin">{belge.govde}</p>
-      </div>
-
-      <footer className="belge-alt">
-        <dl className="belge-bilgi">
-          <div><dt>{t('belge.tarih')}</dt><dd>{tamTarih(bugun())}</dd></div>
-          <div><dt>{t('altbilgi.projeno').split(':')[0]}</dt><dd>{kunye.projeNo}</dd></div>
-        </dl>
-        {/* Kurum logosu: public/kurum-logo-<kurum>.png (sunucu alt klasör
-            sunmaz, bu yüzden düz ad). */}
-        {kurumLogo
-          ? (
-            <div className="belge-evsahibi">
-              <span>{t(kurum.etiket)}</span>
-              <img key={kurum.id} src={`kurum-logo-${kurum.id}.png`} alt={kurum.ad} onError={() => setSira(s => s + 1)} />
-            </div>
-          )
-          : (
-            <div className="belge-muhur" aria-hidden="true">
-              <img src="belge-logo.png" alt="" />
-              <span>Erasmus+</span>
-            </div>
-          )}
         <div className="belge-imza">
           <div className="belge-imza-alan" />
           <div className="belge-imza-cizgi">{imza.adSoyad}</div>
           <div className="belge-birim">{imza.unvan}</div>
         </div>
+      </div>
+
+      {/* Üçlü resmî logo: AB Başkanlığı, Ulusal Ajans, AB eş finansmanı
+          (kullanıcının istediği sıra, 24 Ekim 2026). Görünürlük kuralı gereği
+          belgede de var. Yüksek çözünürlüklü PNG'ler örnek PDF'ten alındı:
+          eski webp'ler 149 px genişlikteydi, baskıda bulanıklaşıyordu. Örnekte
+          feragat metni yok, o yüzden kaldırıldı. */}
+      <footer className="belge-ab">
+        <img src="ab-baskanligi.png" alt={t('ab.logo.baskanlik')} />
+        <img src="ulusal-ajans.png" alt={t('ab.logo.ajans')} />
+        <img src="ab-ortak-finanse.png" alt={t('ab.logo.ortak')} />
       </footer>
-      <p className="belge-feragat">{kunye.feragat}</p>
     </article>
   );
 }

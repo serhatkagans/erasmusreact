@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { ValidationError, PROJECT } from '../lib/data.mjs';
 import {
   belgeTuruMu, belgeMetniUret, aliciAdiniCoz, imzaBilgisiniCoz,
-  imzaUnvaniOner, ozelMetniCoz, topluAlicilariSec, MAX_BELGE,
+  imzaUnvaniOner, ozelMetniCoz, topluAlicilariSec, MAX_BELGE, yerTutuculariDoldur,
+  bosSayisiniCoz, BOS_ALAN,
 } from '../lib/belge.mjs';
 import { metinler, donemBilgisi, tarihAraligi } from '../lib/rapor.mjs';
 import { loadLocale } from '../lib/i18n.mjs';
@@ -196,4 +197,55 @@ test('yayındaki diller aynı anahtar kümesini taşır', () => {
     assert.deepEqual(tutucular(sozlukler.en[anahtar]), tutucular(sozlukler.tr[anahtar]),
       `${anahtar}: yer tutucular uyuşmuyor`);
   }
+});
+
+test('özel metindeki yer tutucular her alıcının bilgisiyle dolar', () => {
+  const metin = 'This is to certify that [Ad Soyad] from [Kurum Adı], [Ülke], attended.';
+  assert.equal(
+    yerTutuculariDoldur(metin, { ad: 'Lisa Morganti', kurum: 'People of 2050', ulke: 'Denmark' }),
+    'This is to certify that Lisa Morganti from People of 2050, Denmark, attended.');
+  /* İngilizce karşılıklar ve büyük/küçük harf */
+  assert.equal(yerTutuculariDoldur('[name] / [ORGANISATION] / [Country]', { ad: 'A', kurum: 'B', ulke: 'C' }), 'A / B / C');
+  /* Değeri olmayan boş kalır, tanınmayan köşeli parantez olduğu gibi durur. */
+  assert.equal(yerTutuculariDoldur('from [Kurum Adı] [TPM1]', { ad: 'A' }), 'from  [TPM1]');
+  /* belgeMetniUret özel metinde yer tutucuları uygular */
+  const b = belgeMetniUret({ tur: 'katilim', ad: 'Ana', kurum: 'GEO CLUB', ozelMetin: 'from [Kurum Adı]', t: k => k });
+  assert.equal(b.govde, 'from GEO CLUB');
+});
+
+test('başlık ve giriş elle yazılabilir; kurum metindeyse alt satır gizlenir', () => {
+  const t = k => k;
+  const b = belgeMetniUret({ tur: 'katilim', ad: 'Ana', altAd: 'GEO CLUB · Romania', kurum: 'GEO CLUB',
+    ozelMetin: 'from [Kurum Adı], participated.', baslik: 'CERTIFICATE OF ATTENDANCE', giris: 'This is to acknowledge and honor', t });
+  assert.equal(b.baslik, 'CERTIFICATE OF ATTENDANCE');
+  assert.equal(b.giris, 'This is to acknowledge and honor');
+  assert.equal(b.altAd, '', 'kurum iki kez yazılmamalı');
+  assert.equal(b.govde, 'from GEO CLUB, participated.');
+  const v = belgeMetniUret({ tur: 'katilim', ad: 'Ana', altAd: 'GEO CLUB · Romania', ozelMetin: 'participated.', t });
+  assert.equal(v.baslik, 'belge.tur.katilim');
+  assert.equal(v.altAd, 'GEO CLUB · Romania');
+});
+
+test('isimsiz yedek belge: sayı doğrulanır, deste sonuna eklenir, ad boş basılır', () => {
+  assert.equal(bosSayisiniCoz(''), 0);
+  assert.equal(bosSayisiniCoz(null), 0);
+  assert.equal(bosSayisiniCoz('5'), 5);
+  for (const yanlis of ['-1', '2.5', 'abc', String(MAX_BELGE + 1)]) {
+    assert.throws(() => bosSayisiniCoz(yanlis), ValidationError);
+  }
+
+  const adaylar = [{ anahtar: 'uye:1', ad: 'Zeynep' }, { anahtar: 'uye:2', ad: 'Ali' }];
+  const deste = topluAlicilariSec({ adaylar, istenenler: ['uye:1', 'uye:2'], bos: 2 });
+  assert.deepEqual(deste.map(x => x.ad), ['Ali', 'Zeynep', '', '']);
+  assert.ok(deste.slice(2).every(x => x.bos));
+  /* Kişi seçmeden yalnızca yedek üretilebilir; sınır yedekleri de sayar. */
+  assert.equal(topluAlicilariSec({ adaylar, istenenler: [], bos: 3 }).length, 3);
+  assert.throws(() => topluAlicilariSec({ adaylar, istenenler: ['uye:1'], bos: MAX_BELGE }), ValidationError);
+
+  const b = belgeMetniUret({ tur: 'katilim', ad: '', bos: true, kurum: 'X', ozelMetin: 'from [Kurum Adı], [Ad]', t: k => k });
+  assert.equal(b.bos, true);
+  assert.equal(b.ad, '');
+  assert.equal(b.altAd, '');
+  assert.equal(b.govde, `from ${BOS_ALAN}, ${BOS_ALAN}`);
+  assert.equal(belgeMetniUret({ tur: 'katilim', ad: 'Ana', t: k => k }).bos, undefined);
 });

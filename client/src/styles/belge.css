@@ -125,7 +125,7 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  padding: 5.2cqw 7cqw 3.6cqw;
+  padding: 5cqw 7cqw 5.4cqw;
   background: #fff;
   color: var(--b-lacivert);
   border: 1px solid var(--cizgi);
@@ -176,43 +176,43 @@
 .belge-filigran { position: absolute; left: 50%; top: 52%; width: 40cqw; transform: translate(-50%, -50%);
   opacity: .05 }
 
-/* --- Üst: proje logosu solda, resmî logolar sağda ------------------------- */
-.belge-ust { display: flex; align-items: center; justify-content: space-between; gap: 3cqw }
-.belge-logo { height: 7cqw; width: auto }
-/* Üçlü resmî logo: aralarında ince ayraçlar. Kare sayılabilecek iki logo
-   (AB Başkanlığı, Ulusal Ajans) daha yüksek, sondaki yatay AB logosu daha alçak
-   durur ki üçü göze eşit ağırlıkta görünsün. */
-.belge-ab { display: flex; align-items: center; gap: 1.4cqw }
-.belge-ab img { width: auto; height: 6cqw }
-.belge-ab img:last-child { height: 4cqw }
-.belge-ab img + img { padding-left: 1.4cqw; border-left: .1cqw solid rgba(15, 42, 74, .18) }
+/* --- Üst: proje logosu ortada (örnek PDF, 13 Kasım 2026) --------------- */
+.belge-ust { display: flex; justify-content: center }
+.belge-logo { height: 6cqw; width: auto }
+
+/* --- Alt: üçlü resmî logo ortada, aralarında ince ayraçlar ---------------
+   Üçü aynı yükseklikte (kullanıcı isteği, 13 Kasım 2026). */
+.belge-ab { display: flex; justify-content: center; align-items: center; gap: 1.2cqw }
+.belge-ab img { width: auto; height: 5.2cqw }
+.belge-ab img + img { padding-left: 1.2cqw; border-left: .1cqw solid rgba(15, 42, 74, .18) }
 
 /* --- Gövde ---------------------------------------------------------------- */
 .belge-govde { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  text-align: center; min-height: 0; padding: 0 3cqw }
+  text-align: center; min-height: 0; padding: 1cqw 3cqw 0 }
 .belge-program { margin: 0 0 1cqw; font-size: 1.05cqw; font-weight: 600; letter-spacing: .08em; color: var(--b-soluk) }
 
 /* Başlık iki yanında geçişli çizgilerle: tek başına duran büyük harfler
    sayfada "havada" kalıyordu. */
-.belge-baslik { display: flex; align-items: center; gap: 2cqw; margin: 0 0 1.6cqw;
-  font-size: 3.4cqw; font-weight: 800; line-height: 1.1; letter-spacing: .16em; text-transform: uppercase; color: var(--b-lacivert) }
-.belge-baslik::before, .belge-baslik::after { content: ''; flex: none; width: 7cqw; height: .25cqw; border-radius: 1cqw; background: var(--b-gecis) }
+.belge-baslik { display: flex; align-items: center; gap: 2cqw; margin: 0 0 1.4cqw;
+  font-size: 2.95cqw; font-weight: 800; line-height: 1.1; letter-spacing: .16em; text-transform: uppercase; color: var(--b-lacivert) }
+.belge-baslik::before, .belge-baslik::after { content: ''; flex: none; width: 6cqw; height: .25cqw; border-radius: 1cqw; background: var(--b-gecis) }
 .belge-baslik::before { transform: scaleX(-1) }
 
-.belge-sunulur { margin: 0 0 1.4cqw; font-size: 1.35cqw; font-style: italic; color: var(--b-soluk) }
+.belge-sunulur { margin: 0 0 1cqw; font-size: 1.16cqw; font-style: italic; color: var(--b-soluk) }
 
 /* Ad: belgenin en büyük öğesi; serif harf ona "belge" ağırlığı verir. */
-.belge-ad { margin: 0; max-width: 100%; font-family: Georgia, Cambria, 'Times New Roman', serif;
-  font-size: 5.6cqw; font-weight: 700; line-height: 1.12; color: var(--b-lacivert); overflow-wrap: break-word }
-.belge-ad-cizgi { display: block; width: 30cqw; max-width: 80%; height: .3cqw; margin: 1.1cqw 0 1.6cqw;
-  border-radius: 1cqw; background: var(--b-gecis) }
-.belge-altad { margin: -.6cqw 0 1.4cqw; font-size: 1.3cqw; font-weight: 600; color: var(--b-vurgu) }
+.belge-ad { margin: 0 0 1.8cqw; max-width: 100%; font-family: Georgia, Cambria, 'Times New Roman', serif;
+  font-size: 4.8cqw; font-weight: 700; line-height: 1.12; color: var(--b-lacivert); overflow-wrap: break-word }
+/* İsimsiz yedek belge: ad elle yazılır. Yükseklik dolu bir adın
+   kapladığı yerle aynı ki yerleşim kaymasın. */
+.belge-ad--bos { width: 46cqw; height: 5.4cqw; border-bottom: .14cqw solid rgba(15, 42, 74, .45) }
+.belge-altad { margin: -1cqw 0 1.4cqw; font-size: 1.3cqw; font-weight: 600; color: var(--b-vurgu) }
 /*
   SATIR SONLARI KORUNUR: gövde metni tarihin önüne bir satır sonu koyuyor.
   `pre-line` olmasaydı o satır sonu boşluğa dönüşür, tarih cümlenin ortasında
   kalır ve satır sonunda ikiye bölünürdü (GençTek'te yaşanmıştı).
 */
-.belge-metin { margin: 0; max-width: 76%; font-size: 1.65cqw; line-height: 1.7; color: #3d4d60; white-space: pre-line; overflow-wrap: break-word }
+.belge-metin { margin: 0; max-width: 60cqw; font-size: 1.43cqw; line-height: 1.72; color: #3d4d60; white-space: pre-line; overflow-wrap: break-word }
 
 /* --- Alt: bilgi · mühür · imza -------------------------------------------
    Üç sütun eşit genişlikte: mühür her zaman tam ortada durur, imza
@@ -245,7 +245,6 @@
 .belge-imza-cizgi { border-top: .14cqw solid var(--b-lacivert); padding-top: .6cqw; font-size: 1.35cqw; font-weight: 700; color: var(--b-lacivert) }
 .belge-birim { margin-top: .2cqw; font-size: 1.05cqw; color: var(--b-soluk); line-height: 1.3 }
 
-.belge-feragat { margin: 1.6cqw 0 0; font-size: .74cqw; line-height: 1.4; color: var(--b-soluk); text-align: center }
 
 /*
   React sürümünde bütün CSS dosyaları her sayfada yüklü (main.jsx). Eski
@@ -269,6 +268,9 @@
   */
   body:has(.belge-listesi) *:not(:has(.belge-listesi)):not(.belge-listesi):not(.belge-listesi *) { display: none !important }
   html:has(.belge-listesi), body:has(.belge-listesi), body *:has(.belge-listesi) {
+    /* width: .kapsayici ekranda "100% - 48px" genişlikte; yazdırmada da öyle
+       kalınca belgenin sağında 48px boşluk kalıyordu (13 Kasım 2026). */
+    width: auto !important;
     margin: 0 !important; padding: 0 !important; background: #fff !important;
     box-shadow: none !important; border: 0 !important; min-height: 0 !important; max-width: none !important;
   }
@@ -282,3 +284,10 @@
   }
   .belge-listesi .belge:last-child { break-after: auto; page-break-after: auto }
 }
+
+/* İmza gövdede, metnin hemen altında ortalı durur (13 Kasım 2026). Alt
+   bilgideki üçüncü sütun boş kalır ki kurum logosu ortada kalsın. */
+.belge-govde .belge-imza { justify-self: auto; margin-top: 1.2cqw; min-width: 22.3cqw; max-width: 30cqw }
+.belge-govde .belge-imza-alan { height: 3.4cqw }
+.belge-govde .belge-imza-cizgi { border-top-width: .12cqw; padding-top: .7cqw; font-size: 1.16cqw }
+.belge-govde .belge-birim { font-size: .91cqw }

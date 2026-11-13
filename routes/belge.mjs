@@ -4,7 +4,7 @@ import { dictionary } from '../lib/i18n.mjs';
 import { metinler, tarihAraligi } from '../lib/rapor.mjs';
 import {
   belgeTuruMu, belgeMetniUret, aliciAdiniCoz, imzaBilgisiniCoz,
-  imzaUnvaniOner, ozelMetniCoz, topluAlicilariSec, MAX_BELGE,
+  imzaUnvaniOner, ozelMetniCoz, topluAlicilariSec, bosSayisiniCoz, MAX_BELGE,
 } from '../lib/belge.mjs';
 
 /**
@@ -86,12 +86,17 @@ export function belgeRoutes({ db }) {
         /* Kişinin altına kurumu ve ülkesi yazılır: belgeyi okuyan, kişinin
            hangi ortak kurumdan katıldığını görmeli. */
         altAd: [partnerOf(u.partner)?.name, t(`ulke.${partnerOf(u.partner)?.country}`)].filter(Boolean).join(' · '),
+        /* Özel metindeki [Kurum Adı] / [Ülke] yer tutucuları için. */
+        kurum: partnerOf(u.partner)?.name || '',
+        ulke: partnerOf(u.partner) ? t(`ulke.${partnerOf(u.partner).country}`) : '',
       })),
       ...partners.map(p => ({
         anahtar: `kurum:${p.id}`,
         partner: p.id,
         ad: p.name,
         altAd: t(`ulke.${p.country}`),
+        kurum: p.name,
+        ulke: t(`ulke.${p.country}`),
       })),
     ];
 
@@ -114,7 +119,10 @@ export function belgeRoutes({ db }) {
       .filter(Boolean)
       .map(deger => ({ anahtar: null, ad: aliciAdiniCoz(deger), altAd: '' }));
 
-    const alicilar = topluAlicilariSec({ adaylar, istenenler, serbest, dil });
+    /* İsimsiz yedek belge: adı elle yazılır (bkz. lib/belge.mjs · BOS_ALAN). */
+    const bos = bosSayisiniCoz(url.searchParams.get('bos'));
+
+    const alicilar = topluAlicilariSec({ adaylar, istenenler, serbest, bos, dil });
 
     const ozelMetin = ozelMetniCoz(url.searchParams.get('metin'));
     const imza = imzaBilgisiniCoz({
@@ -123,8 +131,16 @@ export function belgeRoutes({ db }) {
       varsayilanUnvan: imzaUnvaniOner(user, t),
     });
 
+    const kisa = (ham, max) => {
+      const deger = String(ham ?? '').trim().replace(/\s+/g, ' ');
+      if (deger.length > max) throw new ValidationError('belge.hata.unvanUzun');
+      return deger;
+    };
+    const baslik = kisa(url.searchParams.get('baslik'), 120);
+    const giris = kisa(url.searchParams.get('giris'), 200);
+
     const belgeler = alicilar.map(alici => belgeMetniUret({
-      tur, ad: alici.ad, altAd: alici.altAd, etkinlik, ozelMetin, t,
+      tur, ad: alici.ad, altAd: alici.altAd, kurum: alici.kurum, ulke: alici.ulke, bos: !!alici.bos, etkinlik, ozelMetin, baslik, giris, t,
     }));
 
     return send(res, 200, {

@@ -269,7 +269,6 @@ export default function Bulten() {
           <div className="bulten-manset" id="bulten-manset-bolum">
             <span className="bulten-ust">{t(b.not.yapilanlar ? 'bulten.oneCikanlar' : 'bulten.editorden')}</span>
             <h2 id="bulten-manset">{t('bulten.mansetBaslik', { ay: ayAdi(b.ay) })}</h2>
-            <p className="bulten-spot">{t(projeAy === 1 ? 'bulten.giris.baslangic' : projeAy < 1 ? 'bulten.giris.hazirlik' : 'bulten.giris')}</p>
             {b.not.yapilanlar && <div className="bulten-yazi"><NotMetni metin={b.not.yapilanlar} /></div>}
           </div>
 
@@ -328,7 +327,7 @@ export default function Bulten() {
             <p className="bulten-imza">{t('bulten.notYazan', { ad: b.not.yazan, tarih: tamTarih(b.not.updated.slice(0, 10)) })}</p>
           )}
           <div className="bulten-kolofon-ab">
-            <img src="ab-ortak-finanse.webp" alt={t('ab.logo.ortak')} width="149" height="31" />
+            <img src="ab-ortak-finanse.svg" alt={t('ab.logo.ortak')} width="163" height="31" />
             <p>{t('altbilgi.feragat')}</p>
           </div>
           <p className="bulten-kolofon-son">
