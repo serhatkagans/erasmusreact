@@ -939,3 +939,28 @@ button.profil-sosyal-bag { width: 100%; font: inherit; font-weight: 700; cursor:
 /* Ekip düzenleme: "Ekipten çıkar" kaydet/vazgeç'ten uzakta, sağda durur —
    yanlışlıkla basılmasın. */
 .kutu-eylem .uye-cikar { margin-left: auto }
+
+/* --- Proje kartı (proje.html: projenin genel dijital kartı) ----------------
+   Profil kartının iskeleti; renkler logodan gelen kurumsal paletten
+   (lacivert, mavi, yeşil, filiz). Sosyal düğmeler marka renklerini değil
+   bu paleti kullanır, tema (data-tema="yesil") değişince bant da değişir. */
+.proje-kart { padding-bottom: 22px }
+.proje-kart-ust { margin: 0 -28px 22px; padding: 26px 28px 22px; background: #fff; border-bottom: 4px solid transparent; border-image: var(--bant-cizgi) 1 }
+.proje-kart-logo { display: block; width: min(300px, 100%); height: auto; margin: 0 auto }
+.proje-kart-slogan { margin: 0 0 10px; color: var(--mavi); font-weight: 800; font-size: 1.12rem; line-height: 1.35 }
+.proje-kart-ad { display: inline-block; margin: 0 0 4px; padding: 6px 18px; border-radius: 12px; background: var(--bant); color: #fff; font-size: clamp(1.4rem, 6vw, 1.8rem); letter-spacing: .04em }
+.proje-kart-kunye { margin: 4px 0 14px; color: var(--soluk); font-size: .8rem; font-weight: 600 }
+.proje-kart-metin { margin-bottom: 20px; color: var(--metin) }
+.proje-kart-baglantilar { display: grid; gap: 10px }
+.proje-kart .profil-sosyal-bag { justify-content: flex-start; padding: 0 18px; min-height: 52px; text-align: left; overflow-wrap: anywhere }
+.proje-kart .profil-sosyal-bag span { flex: 1; text-align: center }
+.proje-kart .profil-sosyal-bag svg { flex: none }
+.proje-kart .proje-kart-site { background: var(--bant) }
+.proje-kart .profil-sosyal-linkedin { background: var(--mavi-acik) }
+.proje-kart .profil-sosyal-instagram { background: linear-gradient(100deg, var(--yesil) 0%, var(--yesil-acik) 100%) }
+.proje-kart .profil-sosyal-x { background: var(--mavi) }
+.proje-kart .profil-sosyal-eposta { background: var(--yesil-koyu) }
+.proje-kart .profil-sosyal-rehber { background: var(--kart); color: var(--murekkep) }
+.proje-kart-karekod { margin: 16px auto 0 }
+.proje-kart-logolar { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px 22px; margin: 22px -28px -22px; padding: 16px 20px; background: #fff; border-top: 1px solid var(--cizgi) }
+.proje-kart-logolar img { height: 36px; width: auto; max-width: 100% }

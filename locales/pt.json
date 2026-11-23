@@ -1217,5 +1217,13 @@
   "anket.hata.bos": "Responda a pelo menos uma pergunta antes de enviar.",
   "anket.tesekkur": "Obrigado! A sua resposta foi registada.",
   "anket.yeniYanit": "Enviar outra resposta",
-  "anket.gizlilik": "Este inquérito é anónimo: o seu nome, e-mail ou dados do dispositivo não são registados. As respostas são usadas apenas de forma agregada nos relatórios do projeto E-YOUTHPRENEUR."
+  "anket.gizlilik": "Este inquérito é anónimo: o seu nome, e-mail ou dados do dispositivo não são registados. As respostas são usadas apenas de forma agregada nos relatórios do projeto E-YOUTHPRENEUR.",
+  "kart.baslik": "Cartão do projeto",
+  "kart.site": "Website do projeto",
+  "kart.paylas": "Partilhar cartão",
+  "kart.bulten": "Boletim mensal",
+  "kart.karekodIpucu": "Leia com a câmara do telemóvel para abrir o cartão do projeto.",
+  "kart.sosyal.linkedin": "Ligue-se no LinkedIn",
+  "kart.sosyal.instagram": "Siga-nos no Instagram",
+  "kart.sosyal.x": "Siga-nos no X"
 }

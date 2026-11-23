@@ -1217,5 +1217,13 @@
   "anket.hata.bos": "Răspundeți la cel puțin o întrebare înainte de a trimite.",
   "anket.tesekkur": "Mulțumim! Răspunsul dumneavoastră a fost înregistrat.",
   "anket.yeniYanit": "Trimite un alt răspuns",
-  "anket.gizlilik": "Acest sondaj este anonim: numele, e-mailul sau datele dispozitivului nu sunt înregistrate. Răspunsurile sunt folosite doar agregat în rapoartele proiectului E-YOUTHPRENEUR."
+  "anket.gizlilik": "Acest sondaj este anonim: numele, e-mailul sau datele dispozitivului nu sunt înregistrate. Răspunsurile sunt folosite doar agregat în rapoartele proiectului E-YOUTHPRENEUR.",
+  "kart.baslik": "Fișa proiectului",
+  "kart.site": "Site-ul proiectului",
+  "kart.paylas": "Distribuie fișa",
+  "kart.bulten": "Buletin lunar",
+  "kart.karekodIpucu": "Scanează cu camera telefonului pentru a deschide fișa proiectului.",
+  "kart.sosyal.linkedin": "Conectează-te pe LinkedIn",
+  "kart.sosyal.instagram": "Urmărește-ne pe Instagram",
+  "kart.sosyal.x": "Urmărește-ne pe X"
 }

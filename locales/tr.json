@@ -1299,5 +1299,13 @@
   "anket.hata.bos": "Göndermeden önce en az bir soruyu yanıtlayın.",
   "anket.tesekkur": "Teşekkürler! Yanıtınız kaydedildi.",
   "anket.yeniYanit": "Yeni bir yanıt gönder",
-  "anket.gizlilik": "Bu anket isimsizdir: adınız, e-postanız ya da cihaz bilginiz kaydedilmez. Yanıtlar yalnızca E-YOUTHPRENEUR projesinin raporlarında toplu olarak kullanılır."
+  "anket.gizlilik": "Bu anket isimsizdir: adınız, e-postanız ya da cihaz bilginiz kaydedilmez. Yanıtlar yalnızca E-YOUTHPRENEUR projesinin raporlarında toplu olarak kullanılır.",
+  "kart.baslik": "Proje kartı",
+  "kart.site": "Proje web sitesi",
+  "kart.paylas": "Kartı paylaş",
+  "kart.bulten": "Aylık bülten",
+  "kart.karekodIpucu": "Telefon kamerasıyla okutun; proje kartı açılır.",
+  "kart.sosyal.linkedin": "LinkedIn'de bağlanın",
+  "kart.sosyal.instagram": "Instagram'da takip edin",
+  "kart.sosyal.x": "X'te takip edin"
 }

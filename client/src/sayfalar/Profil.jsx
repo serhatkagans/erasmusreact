@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import qrcode from 'qrcode-generator';
+import { useEffect, useRef, useState } from 'react';
 import { durum, t, iste, ortakAdi, ortakKisa, yerAdi, basHarfler } from '../ortak.js';
 import { useKonum } from '../yonlendirme.js';
 import { useBaslik } from '../bilesenler/Kabuk.jsx';
 import { onayla } from '../bilesenler/Kutu.jsx';
 import { SIMGE } from '../bilesenler/simgeler.jsx';
+import Karekod from '../bilesenler/Karekod.jsx';
 
 /**
  * Herkese açık profil kartı: `profil.html?u=<kullanici>`. Oturum istemez;
@@ -24,26 +24,6 @@ const DIL_SECENEK = ['tr', 'en', 'it', 'ro', 'pt', 'da', 'nl', 'pap', 'es', 'fr'
 const dilAdi = kod => {
   try { return new Intl.DisplayNames([durum.dil], { type: 'language' }).of(kod) || kod; } catch { return kod; }
 };
-
-/* Karekod kartın kendi adresini taşır: NFC'si olmayan telefon kamerasıyla
-   okutur. Kareler tek bir SVG yolu olarak çizilir (innerHTML yok). */
-function Karekod({ metin }) {
-  const { n, yol } = useMemo(() => {
-    const qr = qrcode(0, 'M');
-    qr.addData(metin);
-    qr.make();
-    const n = qr.getModuleCount();
-    let yol = '';
-    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (qr.isDark(y, x)) yol += `M${x} ${y}h1v1h-1z`;
-    return { n, yol };
-  }, [metin]);
-  return (
-    <svg className="profil-karekod-svg" viewBox={`-4 -4 ${n + 8} ${n + 8}`} role="img" aria-label={metin} shapeRendering="crispEdges">
-      <rect x="-4" y="-4" width={n + 8} height={n + 8} fill="#fff" />
-      <path d={yol} fill="#000" />
-    </svg>
-  );
-}
 
 /* Seçilen görsel tarayıcıda kare kırpılıp 600 piksele küçültülür ve JPEG
    olarak gönderilir: telefondan gelen 5 MB'lık fotoğraf ~100 KB'a iner. */

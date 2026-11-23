@@ -22,6 +22,7 @@ const SAYFA = {
   'giris.html': lazy(() => import('./sayfalar/Giris.jsx')),
   'profil.html': lazy(() => import('./sayfalar/Profil.jsx')),
   'anket.html': lazy(() => import('./sayfalar/Anket.jsx')),
+  'proje.html': lazy(() => import('./sayfalar/ProjeKarti.jsx')),
 };
 
 export default function Uygulama() {

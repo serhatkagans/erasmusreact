@@ -48,9 +48,13 @@ test('platform dışarıya kapalı: oturumsuz kişi yalnızca tanıtım, giriş 
   /* Açık kalanlar: giriş sayfası, açılış verisi, profil kartı, stil/betik.
      Arayüz React derlemesidir (dist/): betik ve stil adları derlemede
      üretilir, bu yüzden giriş sayfasının kendisinden okunur. */
-  for (const yol of ['/giris.html', '/profil.html', '/api/acilis', '/logo.png']) {
+  for (const yol of ['/giris.html', '/profil.html', '/proje.html', '/api/acilis', '/logo.png']) {
     assert.equal((await anonim.iste(yol)).durum, 200, yol);
   }
+  /* Proje kartının kısa adresi (afiş ve karekod için). */
+  const kisa = await anonim.iste('/proje');
+  assert.equal(kisa.durum, 302);
+  assert.equal(kisa.basliklar.get('location'), 'proje.html');
   const sayfa = await (await fetch(sunucu.taban + '/giris.html')).text();
   const varliklar = [...sayfa.matchAll(/(?:src|href)="\.\/(assets\/[^"]+)"/g)].map(m => '/' + m[1]);
   assert.ok(varliklar.some(v => v.endsWith('.js')) && varliklar.some(v => v.endsWith('.css')), 'derleme yok: npm run build');

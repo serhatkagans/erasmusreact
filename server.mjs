@@ -43,7 +43,7 @@ import { anketRoutes } from './routes/anket.mjs';
  * kapalı doğar, açmak için bu listeye eklemek gerekir.
  */
 const ACIK_API = new Set(['/api/acilis', '/api/giris', '/api/cikis', '/api/profil', '/api/profil/foto', '/api/profil/vcard']);
-const ACIK_SAYFA = new Set(['/index.html', '/giris.html', '/profil.html', '/bulten.html', '/anket.html']);
+const ACIK_SAYFA = new Set(['/index.html', '/giris.html', '/profil.html', '/bulten.html', '/anket.html', '/proje.html']);
 /* Aylık bülten herkese açıktır (kullanıcı kararı, 21 Ekim 2026: "bülten
    sayfasını herkes görebilsin"). Yalnızca OKUMA açık; not yazma, fotoğraf
    ekleme ve silme koordinatörde kalır. Oturumsuz okuyana kişi adları ve
@@ -79,7 +79,7 @@ const anket = anketRoutes({ db });
    React uygulaması (dist/index.html) verilir; hangi sayfanın çizileceğine
    tarayıcıda karar verilir. */
 const SAYFALAR = new Set(['/index.html', '/takvim.html', '/giris.html', '/ekip.html', '/formlar.html', '/belge.html',
-  '/klasorler.html', '/profil.html', '/kullanicilar.html', '/ciktilar.html', '/pano.html', '/drive.html', '/bulten.html', '/anket.html']);
+  '/klasorler.html', '/profil.html', '/kullanicilar.html', '/ciktilar.html', '/pano.html', '/drive.html', '/bulten.html', '/anket.html', '/proje.html']);
 const TURLER = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2', '.json': 'application/json',
@@ -144,6 +144,12 @@ const server = createServer(async (req, res) => {
       const ay = kisaBulten[1] ? ayCoz(decodeURIComponent(kisaBulten[1].slice(1))) : null;
       const ust = url.pathname.length > '/bulten'.length ? '../' : '';
       res.writeHead(302, { Location: `${ust}bulten.html${ay ? `?ay=${ay}` : ''}`, 'Cache-Control': 'no-store' });
+      return res.end();
+    }
+
+    /* Proje kartının kısa adresi (afiş, karekod, NFC): …/proje. */
+    if (readOnly && /^\/proje\/?$/i.test(url.pathname)) {
+      res.writeHead(302, { Location: `${url.pathname.endsWith('/') ? '../' : ''}proje.html`, 'Cache-Control': 'no-store' });
       return res.end();
     }
 

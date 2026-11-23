@@ -1299,5 +1299,13 @@
   "anket.hata.bos": "Please answer at least one question before sending.",
   "anket.tesekkur": "Thank you! Your answer has been recorded.",
   "anket.yeniYanit": "Send another answer",
-  "anket.gizlilik": "This survey is anonymous: your name, email or device details are not recorded. Answers are used only in aggregate in E-YOUTHPRENEUR project reports."
+  "anket.gizlilik": "This survey is anonymous: your name, email or device details are not recorded. Answers are used only in aggregate in E-YOUTHPRENEUR project reports.",
+  "kart.baslik": "Project card",
+  "kart.site": "Project website",
+  "kart.paylas": "Share card",
+  "kart.bulten": "Monthly newsletter",
+  "kart.karekodIpucu": "Scan with a phone camera to open the project card.",
+  "kart.sosyal.linkedin": "Connect on LinkedIn",
+  "kart.sosyal.instagram": "Follow on Instagram",
+  "kart.sosyal.x": "Follow on X"
 }

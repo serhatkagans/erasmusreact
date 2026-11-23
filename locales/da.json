@@ -1217,5 +1217,13 @@
   "anket.hata.bos": "Besvar mindst ét spørgsmål, før du sender.",
   "anket.tesekkur": "Tak! Dit svar er registreret.",
   "anket.yeniYanit": "Send et nyt svar",
-  "anket.gizlilik": "Spørgeskemaet er anonymt: dit navn, din e-mail eller dine enhedsoplysninger registreres ikke. Svarene bruges kun samlet i E-YOUTHPRENEUR-projektets rapporter."
+  "anket.gizlilik": "Spørgeskemaet er anonymt: dit navn, din e-mail eller dine enhedsoplysninger registreres ikke. Svarene bruges kun samlet i E-YOUTHPRENEUR-projektets rapporter.",
+  "kart.baslik": "Projektkort",
+  "kart.site": "Projektets websted",
+  "kart.paylas": "Del kortet",
+  "kart.bulten": "Månedligt nyhedsbrev",
+  "kart.karekodIpucu": "Scan med telefonens kamera for at åbne projektkortet.",
+  "kart.sosyal.linkedin": "Forbind på LinkedIn",
+  "kart.sosyal.instagram": "Følg os på Instagram",
+  "kart.sosyal.x": "Følg os på X"
 }
