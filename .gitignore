@@ -36,3 +36,8 @@ dist/
 /*.jpeg
 /afişler/
 /dosyalar/
+
+# Etkinlik fotoğrafları (WhatsApp'tan gelen ham kareler) ve kişi listeleri;
+# bültene seçilenler uygulama üzerinden yüklenir, depoya girmez.
+/görseller/
+/kisiler.txt
