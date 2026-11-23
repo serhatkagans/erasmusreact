@@ -148,6 +148,9 @@
 /* Yatay fotoğraf satırı tek başına kaplar ve büyük görünür. */
 .bulten-foto-izgara .bulten-foto-genis { grid-column: 1 / -1 }
 .bulten-foto-izgara .bulten-foto-genis img { height: auto; max-height: 620px; object-fit: contain; background: #0f1f33 }
+/* Video tam satırda, ortalı ve uzun: dikey (9:16) video ekranın çoğunu doldurur. */
+.bulten-foto-izgara .bulten-foto-genis .bulten-medya-video .bulten-medya-cerceve { width: fit-content; max-width: 100%; margin: 0 auto }
+.bulten-foto-izgara .bulten-foto-genis video { width: auto; max-width: 100%; height: min(78vh, 720px); background: #0f1f33 }
 .bulten-medya { margin: 0; display: grid; gap: 8px }
 .bulten-medya-cerceve { position: relative; border-radius: 2px; overflow: hidden; transition: transform .15s, box-shadow .15s }
 .bulten-medya:hover .bulten-medya-cerceve { transform: translateY(-2px); box-shadow: var(--golge-o) }
@@ -273,6 +276,7 @@
   .bulten-foto-izgara.tek { grid-template-columns: minmax(0, 1fr) }
   .bulten-foto-izgara.tek img { height: auto; max-height: 66mm; object-fit: cover }
   .bulten-foto-izgara .bulten-foto-genis img { height: auto; max-height: 95mm; background: none }
+  .bulten-foto-izgara .bulten-foto-genis video { height: 95mm }
   .bulten-medya-tanitim { font-size: 9pt }
 
   /* "Gelecek sayıda" kutusu çift çerçeveli; bölünürse çerçeve yarım kalır. */

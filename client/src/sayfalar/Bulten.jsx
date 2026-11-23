@@ -444,7 +444,8 @@ const SURE = /^\d+\s*(sn|sa|dk|saniye|dakika)\b/i;
 const medyaTuru = f => (f.tur === 'application/pdf' ? 'belge'
   : f.tur.startsWith('video/') ? 'video' : /afi[şs]/i.test(`${f.aciklama} ${f.ad}`) ? 'afis' : 'foto');
 const SIRA = { foto: 0, afis: 1, video: 1, belge: 2 };
-const GENIS = new Set(['foto', 'belge']);
+/* Video da kendi satırında: dar sütunda 9:16 video okunmayacak kadar küçülüyordu. */
+const GENIS = new Set(['foto', 'video', 'belge']);
 
 function MedyaKart({ f }) {
   const tur = medyaTuru(f);
