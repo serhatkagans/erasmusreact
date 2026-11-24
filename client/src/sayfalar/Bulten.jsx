@@ -403,10 +403,10 @@ function Fotolar({ b, yenile }) {
         ? <p className="pano-bos">{t('bulten.fotolar.bos')}</p>
         : (
           <ul className={`bulten-foto-izgara${b.fotolar.length === 1 ? ' tek' : ''}`}>
-            {/* Yatay fotoğraflar başta ve tam genişlikte; afiş ve dikey videolar
-                ortada yan yana; PDF belgeler en sonda, tam genişlikte. */}
+            {/* Fotoğraflar başta, satırda üç; ardından afişler; videolar iki
+                tane yan yana (tek video tam satır); PDF belgeler en sonda, tam satır. */}
             {[...b.fotolar].sort((x, y) => SIRA[medyaTuru(x)] - SIRA[medyaTuru(y)]).map(f => (
-              <li key={f.id} className={GENIS.has(medyaTuru(f)) ? 'bulten-foto-genis' : undefined}>
+              <li key={f.id} className={medyaSinifi(f, b.fotolar)}>
                 <MedyaKart f={f} />
                 {b.duzenleyebilir && (
                   <span className="bulten-foto-eylem">
@@ -443,9 +443,14 @@ const SURE = /^\d+\s*(sn|sa|dk|saniye|dakika)\b/i;
 /** Medyanın türü: PDF belge, video, afiş (açıklamada ya da adda "afiş" geçer) ya da fotoğraf. */
 const medyaTuru = f => (f.tur === 'application/pdf' ? 'belge'
   : f.tur.startsWith('video/') ? 'video' : /afi[şs]/i.test(`${f.aciklama} ${f.ad}`) ? 'afis' : 'foto');
-const SIRA = { foto: 0, afis: 1, video: 1, belge: 2 };
-/* Video da kendi satırında: dar sütunda 9:16 video okunmayacak kadar küçülüyordu. */
-const GENIS = new Set(['foto', 'video', 'belge']);
+const SIRA = { foto: 0, afis: 1, video: 2, belge: 3 };
+/** Izgara hücresinin sınıfı: belge ve tek başına kalan video tam satır kaplar. */
+const medyaSinifi = (f, hepsi) => {
+  const tur = medyaTuru(f);
+  if (tur === 'belge') return 'bulten-foto-genis';
+  if (tur !== 'video') return undefined;
+  return hepsi.filter(x => medyaTuru(x) === 'video').length === 1 ? 'bulten-foto-video bulten-foto-genis' : 'bulten-foto-video';
+};
 
 function MedyaKart({ f }) {
   const tur = medyaTuru(f);
