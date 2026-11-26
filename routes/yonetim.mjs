@@ -4,6 +4,7 @@ import { loadLocale } from '../lib/i18n.mjs';
 import {
   siteYukle, projeDogrula, ortakDogrula, varsayilanProje, varsayilanOrtak,
   gorselAdlari, gorselTuru, ozelGorsel, MAX_GORSEL,
+  TEMA_RENKLERI, TEMA_YAZILARI, temaDogrula, temaBilgisi,
 } from '../lib/site.mjs';
 
 /**
@@ -19,6 +20,7 @@ import {
  *   GET    /api/yonetim/gorseller       değiştirilebilen görseller
  *   PUT    /api/yonetim/gorsel/<ad>     ham gövde: yeni dosya
  *   DELETE /api/yonetim/gorsel/<ad>     varsayılana dön
+ *   GET|PUT /api/yonetim/tema           renkler ve yazı tipi (boş gövde: varsayılan)
  *
  * Kaydedilen her şey `siteYukle` ile hemen uygulanır; yeniden başlatma yok.
  */
@@ -102,6 +104,18 @@ export function yonetimRoutes({ db }) {
         await siteYukle(db);
         return send(res, 200, { ok: true });
       }
+    }
+
+    if (yol === '/api/yonetim/tema') {
+      if (req.method === 'PUT') await ayarYaz('tema', temaDogrula(await body(req)));
+      else if (req.method !== 'GET') return send(res, 405, { error: 'genel.hata' });
+      return send(res, 200, {
+        varsayilan: { ...TEMA_RENKLERI, yazi: 'sistem' },
+        tema: { ...TEMA_RENKLERI, yazi: 'sistem', ...temaBilgisi().fark },
+        degisen: Object.keys(temaBilgisi().fark),
+        yazilar: Object.keys(TEMA_YAZILARI),
+        yaziYigini: TEMA_YAZILARI,
+      });
     }
 
     if (yol === '/api/yonetim/gorseller' && req.method === 'GET') {

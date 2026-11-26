@@ -81,3 +81,26 @@ test('yönetim: görsel yüklenince aynı adla sunulur; yalnızca görsel kabul 
   await admin.iste('/api/yonetim/gorsel/logo.png', { method: 'DELETE' });
   assert.notDeepEqual((await anonim.iste('/logo.png')).veri, png);
 });
+
+test('yönetim: görünüm — renk farkı tema.css olur ve sayfaya eklenir; yalnızca yönetici', async () => {
+  const anonim = await istemci(sunucu);
+  assert.equal((await (await istemci(sunucu, KOORDINATOR)).iste('/api/yonetim/tema', { method: 'PUT', body: { yesil: '#000000' } })).durum, 403);
+  assert.doesNotMatch((await anonim.iste('/giris.html')).veri.toString(), /tema\.css/, 'değişiklik yokken eklenmez');
+
+  const admin = await istemci(sunucu, YONETICI);
+  assert.equal((await admin.iste('/api/yonetim/tema', { method: 'PUT', body: { yesil: 'kirmizi' } })).durum, 400);
+  assert.equal((await admin.iste('/api/yonetim/tema', { method: 'PUT', body: { yazi: 'comic' } })).durum, 400);
+  const yaz = await admin.iste('/api/yonetim/tema', { method: 'PUT', body: { yesil: '#AA0000', mavi: '#0f2a4a', yazi: 'tirnakli' } });
+  assert.equal(yaz.durum, 200);
+  assert.deepEqual(yaz.veri.degisen.sort(), ['yazi', 'yesil'], 'varsayılana eşit renk kaydedilmez');
+
+  const css = (await anonim.iste('/tema.css')).veri.toString();
+  assert.match(css, /--yesil: #aa0000/);
+  assert.match(css, /--vurgu-rgb: 170, 0, 0/);
+  assert.match(css, /Georgia/);
+  assert.match((await anonim.iste('/giris.html')).veri.toString(), /<link rel="stylesheet" href="tema\.css\?v=\w+">/);
+
+  await admin.iste('/api/yonetim/tema', { method: 'PUT', body: {} });
+  assert.equal((await anonim.iste('/tema.css')).veri.toString(), '');
+  assert.doesNotMatch((await anonim.iste('/giris.html')).veri.toString(), /tema\.css/);
+});

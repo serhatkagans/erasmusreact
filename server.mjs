@@ -24,7 +24,7 @@ import { driveRoutes } from './routes/drive.mjs';
 import { bultenRoutes, ayCoz } from './routes/bulten.mjs';
 import { anketRoutes } from './routes/anket.mjs';
 import { yonetimRoutes } from './routes/yonetim.mjs';
-import { siteYukle, ozelGorsel } from './lib/site.mjs';
+import { siteYukle, ozelGorsel, temaBilgisi } from './lib/site.mjs';
 
 /**
  * HTTP sunucusu: ortak başlıklar, oturum ve dil çözümü, yönlendirme zinciri
@@ -109,14 +109,30 @@ function statikYol(pathname) {
 }
 
 async function staticFile(req, res, url, readOnly) {
+  if (!readOnly) return;
+  /* Yönetim → Görünüm: renk farkları (lib/site.mjs · temaUret). */
+  if (url.pathname === '/tema.css') {
+    const { css, surum } = temaBilgisi();
+    const etag = `"tema-${surum || 'yok'}"`;
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('ETag', etag);
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304); return res.end(); }
+    const veri = Buffer.from(css);
+    res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8', 'Content-Length': veri.length });
+    return res.end(req.method === 'HEAD' ? undefined : veri);
+  }
   const yol = statikYol(url.pathname);
-  if (!yol || !readOnly) return;
+  if (!yol) return;
   /* Yönetim sayfasından yüklenen görsel, derlemedeki dosyanın yerine geçer
      (adı aynı kalır, sayfalar değişmeden yeni logoyu gösterir). */
   const ozel = !yol.sayfa && ozelGorsel(yol.dosya);
   let content;
   if (ozel) content = ozel.veri;
   else try { content = await readFile(new URL(yol.dosya, DIST)); } catch { return; }
+  /* Renk değiştirildiyse tema.css sayfanın başına eklenir (ilk çizimde doğru
+     renkler; React yüklenmeyi beklemez). */
+  const { surum } = temaBilgisi();
+  if (yol.sayfa && surum) content = Buffer.from(content.toString('utf8').replace('</head>', `<link rel="stylesheet" href="tema.css?v=${surum}">\n</head>`));
   const type = ozel ? ozel.tur : yol.tur;
   const etag = ozel ? ozel.etag : '"' + createHash('sha256').update(content).digest('hex').slice(0, 32) + '"';
   /* Yüklenen SVG kendi başına açılırsa içindeki betik çalışmasın. */

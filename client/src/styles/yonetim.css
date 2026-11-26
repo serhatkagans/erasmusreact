@@ -26,3 +26,23 @@
 .yonetim-gorsel-on { display: grid; place-items: center; height: 120px; border-radius: 8px; background: repeating-conic-gradient(#eef1f4 0 25%, #fff 0 50%) 0 0 / 16px 16px }
 .yonetim-gorsel-on img { max-width: 100%; max-height: 110px; object-fit: contain }
 .yonetim-gorsel label.dugme { cursor: pointer }
+
+/* Görünüm sekmesi */
+.yonetim-tema-onizleme { border: 1px solid var(--cizgi); border-radius: 12px; overflow: hidden; margin-bottom: 18px; background: var(--zemin) }
+.yonetim-tema-bant { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bant); color: #fff; position: relative }
+.yonetim-tema-bant span { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--bant-cizgi) }
+.yonetim-tema-govde { padding: 14px 16px; font-family: var(--yazi) }
+.yonetim-tema-govde h3 { margin: 0 0 6px; color: var(--murekkep) }
+.yonetim-tema-govde p { margin: 0 0 10px; color: var(--metin) }
+.yonetim-tema-govde a { color: var(--vurgu) }
+.yonetim-tema-wp { display: inline-block; padding: 3px 9px; border-radius: 999px; color: #fff; font-size: .75rem; font-weight: 700 }
+.yonetim-tema-wp1 { background: var(--wp1) } .yonetim-tema-wp2 { background: var(--wp2) }
+.yonetim-tema-wp3 { background: var(--wp3) } .yonetim-tema-wp4 { background: var(--wp4) }
+.yonetim-tema-grup { border: 0; padding: 0; margin: 0 0 16px }
+.yonetim-tema-grup legend { font-weight: 700; color: var(--murekkep); margin-bottom: 8px }
+.yonetim-tema-renkler { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) }
+.yonetim-tema-renk { display: grid; gap: 4px; font-size: .9rem }
+.yonetim-tema-secici { display: flex; align-items: center; gap: 8px }
+.yonetim-tema-secici input[type="color"] { width: 44px; height: 32px; padding: 0; border: 1px solid var(--cizgi-koyu); border-radius: 6px; background: none; cursor: pointer }
+.yonetim-tema-secici code { font-size: .82rem; color: var(--soluk) }
+.yonetim-tema-yazi { max-width: 320px; margin-bottom: 8px }
