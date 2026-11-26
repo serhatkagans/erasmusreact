@@ -16,7 +16,7 @@ import '../styles/yonetim.css';
  * bant ve menü sayfa açılışında yüklendiği için künye ve metin değişikliği
  * orada sayfa yenilenince görünür.
  */
-const SEKMELER = ['kunye', 'kurumlar', 'metinler', 'gorseller', 'gorunum', 'menu', 'kurallar'];
+const SEKMELER = ['kunye', 'kurumlar', 'metinler', 'gorseller', 'gorunum', 'menu', 'kurallar', 'listeler'];
 
 export default function Yonetim() {
   useBaslik('yonetim.baslik');
@@ -48,6 +48,7 @@ export default function Yonetim() {
             {sekme === 'gorunum' && <Gorunum />}
             {sekme === 'menu' && <MenuSekmesi />}
             {sekme === 'kurallar' && <Kurallar />}
+            {sekme === 'listeler' && <Listeler />}
           </>
         )}
       </div>
@@ -638,6 +639,91 @@ function KurallarForm({ veri, yenile }) {
         {veri.degisen.length > 0 && (
           <button type="button" className="dugme dugme-hayalet" disabled={bekliyor} onClick={async () => {
             if (await onayla(t('yonetim.sifirlaOnay'), { evet: t('yonetim.sifirla'), tehlike: true })) kaydet({ ...vars });
+          }}>{t('yonetim.sifirla')}</button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/* --- Listeler ------------------------------------------------------------------
+   İş paketleri, etkinlik türleri ve ülkeler (lib/site.mjs · LISTE_TANIMI).
+   Ad boş bırakılırsa dosyadaki çeviri kullanılır (gri yazı). Bir kayıtta
+   kullanılan madde silinemez; sunucu da reddeder. */
+function Listeler() {
+  const { veri, yenile } = useVeri('api/yonetim/listeler');
+  if (!veri) return <p className="bos-durum">{t('genel.yukleniyor')}</p>;
+  return (
+    <>
+      <p className="alan-ipucu yonetim-not">{t('yonetim.liste.ipucu')}</p>
+      {['wp', 'tur', 'ulke'].map(ad => <ListeForm key={ad + JSON.stringify(veri[ad])} ad={ad} veri={veri[ad]} yenile={yenile} />)}
+    </>
+  );
+}
+
+function ListeForm({ ad, veri, yenile }) {
+  const [maddeler, setMaddeler] = useState(veri.maddeler.map(m => ({ ...m, eski: true })));
+  const [hata, setHata] = useState('');
+  const [bekliyor, setBekliyor] = useState(false);
+  const ilk = JSON.stringify(veri.maddeler.map(({ id, tr, en }) => ({ id, tr, en })));
+  const simdi = JSON.stringify(maddeler.map(({ id, tr, en }) => ({ id, tr, en })));
+  const degisti = ilk !== simdi;
+
+  const gonder = async govde => {
+    setHata('');
+    setBekliyor(true);
+    try {
+      await iste(`api/yonetim/liste/${ad}`, { method: 'PUT', body: JSON.stringify(govde) });
+      yenile();
+      bildir(t('yonetim.liste.kaydedildi'));
+    } catch (err) { setHata(err.message); } finally { setBekliyor(false); }
+  };
+  const degistir = (i, alan, deger) => setMaddeler(maddeler.map((m, j) => (j === i ? { ...m, [alan]: deger } : m)));
+  const tasi = (i, yon) => {
+    const yeni = [...maddeler];
+    [yeni[i], yeni[i + yon]] = [yeni[i + yon], yeni[i]];
+    setMaddeler(yeni);
+  };
+
+  return (
+    <form className="yonetim-kart" onSubmit={o => {
+      o.preventDefault();
+      gonder({ liste: maddeler.map(({ id, tr, en }) => ({ id: id.trim(), tr: tr.trim(), en: en.trim() })) });
+    }}>
+      <h2>{t(`yonetim.liste.${ad}`)}</h2>
+      <div className="yonetim-liste">
+        <div className="yonetim-liste-bas" aria-hidden="true">
+          <span>{t('yonetim.liste.kod')}</span><span>{t('yonetim.liste.adTr')}</span><span>{t('yonetim.liste.adEn')}</span><span>{t('yonetim.liste.kullanim')}</span><span />
+        </div>
+        {maddeler.map((m, i) => (
+          <div key={m.eski ? m.id : `yeni-${i}`} className="yonetim-liste-satir">
+            {m.eski
+              ? <code>{m.id}</code>
+              : <input aria-label={t('yonetim.liste.kod')} required value={m.id} placeholder={veri.ornek} onChange={e => degistir(i, 'id', e.target.value)} />}
+            <input aria-label={t('yonetim.liste.adTr')} value={m.tr} placeholder={m.dosyaTr || t('yonetim.liste.adGerekli')} required={!m.dosyaTr} maxLength={120}
+              onChange={e => degistir(i, 'tr', e.target.value)} />
+            <input aria-label={t('yonetim.liste.adEn')} value={m.en} placeholder={m.dosyaEn || m.tr || ''} maxLength={120}
+              onChange={e => degistir(i, 'en', e.target.value)} />
+            <span className="yonetim-liste-sayi">{m.eski ? m.kullanim : '—'}</span>
+            <span className="yonetim-eylem">
+              <button type="button" className="bulten-duzen-dugme" disabled={i === 0} aria-label={t('bulten.duzen.yukari')} title={t('bulten.duzen.yukari')} onClick={() => tasi(i, -1)}>↑</button>
+              <button type="button" className="bulten-duzen-dugme" disabled={i === maddeler.length - 1} aria-label={t('bulten.duzen.asagi')} title={t('bulten.duzen.asagi')} onClick={() => tasi(i, 1)}>↓</button>
+              <button type="button" className="bulten-duzen-dugme bulten-duzen-sil" disabled={m.kullanim > 0 || maddeler.length === 1}
+                title={m.kullanim > 0 ? t('yonetim.liste.kullaniliyor', { n: m.kullanim }) : t('genel.sil')} aria-label={t('genel.sil')}
+                onClick={() => setMaddeler(maddeler.filter((_, j) => j !== i))}>×</button>
+            </span>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="dugme dugme-ikincil dugme-kucuk yonetim-liste-ekle"
+        onClick={() => setMaddeler([...maddeler, { id: '', tr: '', en: '', dosyaTr: '', dosyaEn: '', kullanim: 0, eski: false }])}>+ {t('yonetim.liste.ekle')}</button>
+      <p className="hata" role="alert">{hata}</p>
+      <div className="yonetim-eylem">
+        <button type="submit" className="dugme dugme-birincil" disabled={bekliyor || !degisti}>{t('genel.kaydet')}</button>
+        {degisti && <button type="button" className="dugme dugme-ikincil" disabled={bekliyor} onClick={() => setMaddeler(veri.maddeler.map(m => ({ ...m, eski: true })))}>{t('genel.vazgec')}</button>}
+        {veri.degisti && (
+          <button type="button" className="dugme dugme-hayalet" disabled={bekliyor} onClick={async () => {
+            if (await onayla(t('yonetim.sifirlaOnay'), { evet: t('yonetim.sifirla'), tehlike: true })) gonder({ varsayilan: true });
           }}>{t('yonetim.sifirla')}</button>
         )}
       </div>

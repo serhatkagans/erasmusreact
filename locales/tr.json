@@ -1446,5 +1446,18 @@
   "yonetim.kural.bultenAylikFoto": "Bültende aylık fotoğraf ve video",
   "yonetim.kural.bultenIlkAy": "Bültenin ilk ayı",
   "yonetim.kural.bultenKurumlari": "Bülteni düzenleyebilen kurumlar",
-  "yonetim.kural.bultenKurumlariIpucu": "Seçilen kurumların bütün hesapları bülteni düzenler (haber, fotoğraf, düzen). Yönetici hesabı her zaman düzenleyebilir."
+  "yonetim.kural.bultenKurumlariIpucu": "Seçilen kurumların bütün hesapları bülteni düzenler (haber, fotoğraf, düzen). Yönetici hesabı her zaman düzenleyebilir.",
+  "yonetim.sekme.listeler": "Listeler",
+  "yonetim.liste.ipucu": "Takvim, görev ve kurum formlarındaki seçenekler. Ad boş bırakılırsa mevcut çeviri kullanılır (gri yazı); yeni maddenin öbür dillerdeki adı Türkçe görünür. Bir kayıtta kullanılan madde silinemez. Uzun açıklamalar (ör. iş paketi özeti) \"Metinler\" sekmesindedir.",
+  "yonetim.liste.wp": "İş paketleri",
+  "yonetim.liste.tur": "Etkinlik türleri",
+  "yonetim.liste.ulke": "Ülkeler (etkinlik yeri ve kurum ülkesi)",
+  "yonetim.liste.kod": "Kod",
+  "yonetim.liste.adTr": "Ad (Türkçe)",
+  "yonetim.liste.adEn": "Ad (İngilizce)",
+  "yonetim.liste.adGerekli": "Ad yazın",
+  "yonetim.liste.kullanim": "Kayıt",
+  "yonetim.liste.kullaniliyor": "%{n} kayıtta kullanılıyor; silinemez.",
+  "yonetim.liste.ekle": "Madde ekle",
+  "yonetim.liste.kaydedildi": "Kaydedildi. Seçenekler sayfa yenilenince değişir."
 }

@@ -1446,5 +1446,18 @@
   "yonetim.kural.bultenAylikFoto": "Newsletter photos and videos per month",
   "yonetim.kural.bultenIlkAy": "First newsletter month",
   "yonetim.kural.bultenKurumlari": "Organisations that can edit the newsletter",
-  "yonetim.kural.bultenKurumlariIpucu": "All accounts of the selected organisations can edit the newsletter (news, photos, layout). Admin accounts can always edit it."
+  "yonetim.kural.bultenKurumlariIpucu": "All accounts of the selected organisations can edit the newsletter (news, photos, layout). Admin accounts can always edit it.",
+  "yonetim.sekme.listeler": "Lists",
+  "yonetim.liste.ipucu": "Options in the calendar, task and organisation forms. If a name is left empty the existing translation is used (grey text); a new item shows its Turkish name in the other languages. An item used by a record cannot be deleted. Long descriptions (e.g. work package summary) are under \"Texts\".",
+  "yonetim.liste.wp": "Work packages",
+  "yonetim.liste.tur": "Activity types",
+  "yonetim.liste.ulke": "Countries (activity venue and organisation country)",
+  "yonetim.liste.kod": "Code",
+  "yonetim.liste.adTr": "Name (Turkish)",
+  "yonetim.liste.adEn": "Name (English)",
+  "yonetim.liste.adGerekli": "Enter a name",
+  "yonetim.liste.kullanim": "Records",
+  "yonetim.liste.kullaniliyor": "Used by %{n} records; cannot be deleted.",
+  "yonetim.liste.ekle": "Add item",
+  "yonetim.liste.kaydedildi": "Saved. Options change when the page is reloaded."
 }

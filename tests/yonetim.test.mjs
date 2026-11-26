@@ -154,3 +154,34 @@ test('yönetim: kurallar — sınırlar açılışa, bülten yetkisi uçlara yan
   assert.equal((await admin.iste('/api/acilis')).veri.minParola, 12);
   assert.equal((await koordinator.iste(`/api/bulten/${ay}/ayar`, { method: 'PUT', body: govde })).durum, 200);
 });
+
+test('yönetim: listeler — madde eklenir, adı sözlüğe girer, doğrulamada geçerli olur; kullanılan silinemez', async () => {
+  const admin = await istemci(sunucu, YONETICI);
+  const ozet = (await admin.iste('/api/yonetim/listeler')).veri;
+  const turler = ozet.tur.maddeler.map(m => ({ id: m.id, tr: m.tr, en: m.en }));
+
+  assert.equal((await admin.iste('/api/yonetim/liste/tur', { method: 'PUT', body: { liste: [...turler, { id: 'Kötü Kod' }] } })).durum, 400);
+  assert.equal((await admin.iste('/api/yonetim/liste/tur', { method: 'PUT', body: { liste: [...turler, { id: 'tpm' }] } })).durum, 400, 'tekrar');
+
+  const yaz = await admin.iste('/api/yonetim/liste/tur', { method: 'PUT', body: { liste: [{ id: 'atolye', tr: 'Atölye', en: 'Workshop' }, ...turler] } });
+  assert.equal(yaz.durum, 200);
+  const acilis = (await admin.iste('/api/acilis')).veri;
+  assert.equal(acilis.turler[0], 'atolye');
+  assert.equal(acilis.sozluk['tur.atolye'], 'Atölye');
+  assert.equal((await admin.iste('/api/acilis?dil=en')).veri.sozluk['tur.atolye'], 'Workshop');
+  assert.equal((await admin.iste('/api/acilis?dil=it')).veri.sozluk['tur.atolye'], 'Atölye', 'öbür diller Türkçeye düşer');
+
+  /* Ülke: kurumun ülkesi silinemez; yeni ülke kurum bilgisinde seçilebilir. */
+  const ulkeler = ozet.ulke.maddeler.map(m => ({ id: m.id }));
+  assert.equal((await admin.iste('/api/yonetim/liste/ulke', { method: 'PUT', body: { liste: ulkeler.filter(u => u.id !== 'TR') } })).durum, 400);
+  const es = await admin.iste('/api/yonetim/liste/ulke', { method: 'PUT', body: { liste: [...ulkeler, { id: 'ES', tr: 'İspanya', en: 'Spain' }] } }); assert.equal(es.durum, 200, JSON.stringify(es.veri));
+  assert.ok((await admin.iste('/api/acilis')).veri.yerler.includes('ES'));
+  assert.equal((await admin.iste('/api/acilis')).veri.yerler.at(-1), 'VIRTUAL');
+
+  await admin.iste('/api/yonetim/liste/tur', { method: 'PUT', body: { varsayilan: true } });
+  await admin.iste('/api/yonetim/liste/ulke', { method: 'PUT', body: { varsayilan: true } });
+  const son = (await admin.iste('/api/acilis')).veri;
+  assert.deepEqual(son.turler, ozet.tur.varsayilan);
+  assert.ok(!son.yerler.includes('ES'));
+  assert.equal(son.sozluk['tur.atolye'], undefined);
+});

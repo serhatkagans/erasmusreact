@@ -60,3 +60,16 @@
 /* Kurallar sekmesi */
 .yonetim-kural-baslik { font-weight: 650; color: var(--murekkep); margin: 14px 0 2px }
 .yonetim-kural-kurumlar { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: 8px 0 }
+
+/* Listeler sekmesi */
+.yonetim-liste { display: grid; gap: 6px; margin-bottom: 10px }
+.yonetim-liste-bas, .yonetim-liste-satir { display: grid; grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1fr) 70px auto; gap: 8px; align-items: center }
+.yonetim-liste-bas { font-size: .78rem; font-weight: 650; color: var(--soluk) }
+.yonetim-liste-satir input { width: 100%; padding: 7px 9px; border: 1px solid var(--cizgi-koyu); border-radius: 8px; background: var(--kart); font: inherit; color: var(--murekkep) }
+.yonetim-liste-satir code { font-weight: 650; color: var(--murekkep) }
+.yonetim-liste-sayi { text-align: center; color: var(--soluk); font-size: .88rem }
+.yonetim-liste-ekle { margin-bottom: 6px }
+@media (max-width: 700px) {
+  .yonetim-liste-bas { display: none }
+  .yonetim-liste-satir { grid-template-columns: 1fr 1fr; padding: 8px; border: 1px solid var(--cizgi); border-radius: 10px }
+}
