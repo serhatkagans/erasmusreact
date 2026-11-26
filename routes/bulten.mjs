@@ -1,6 +1,7 @@
 import { listOf, ValidationError, requireText, sniffPhoto, PHOTO_TYPES, MAX_PHOTO_BYTES } from '../lib/data.mjs';
 import { send, body, rawBody } from '../lib/http.mjs';
 import { CIKTILAR } from '../lib/cikti.mjs';
+import { bultenYetkili } from '../lib/site.mjs';
 
 /**
  * Aylık bülten: projenin ay ay ne yaptığı ve ne yapacağı.
@@ -120,12 +121,12 @@ export function bultenRoutes({ db }) {
       const foto = Number.isInteger(id) && id > 0 && await db.get('SELECT id,ad,tur,veri FROM bulten_foto WHERE id=?', [id]);
       if (!foto) return send(res, 404, { error: 'bulten.hata.foto' });
       if (req.method === 'DELETE') {
-        if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+        if (!bultenYetkili(user)) return send(res, 403, { error: 'bulten.hata.yetki' });
         await db.run('DELETE FROM bulten_foto WHERE id=?', [id]);
         return send(res, 200, { ok: true });
       }
       if (req.method === 'PUT') {
-        if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+        if (!bultenYetkili(user)) return send(res, 403, { error: 'bulten.hata.yetki' });
         const g = await body(req);
         const aciklama = typeof g.aciklama === 'string' ? g.aciklama.replace(/\r\n/g, '\n').trim() : '';
         if (aciklama.length > ACIKLAMA_SINIRI) throw new ValidationError('bulten.hata.aciklamaUzun');
@@ -160,7 +161,7 @@ export function bultenRoutes({ db }) {
     if (parca.length === 2 && parca[1] === 'foto' && req.method === 'POST') {
       const ay = parca[0];
       if (!aylar.includes(ay)) return send(res, 404, { error: 'bulten.hata.ay' });
-      if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+      if (!bultenYetkili(user)) return send(res, 403, { error: 'bulten.hata.yetki' });
       const adet = await db.get('SELECT CAST(count(*) AS INTEGER) AS n FROM bulten_foto WHERE ay=?', [ay]);
       if (Number(adet.n) >= AYLIK_FOTO) throw new ValidationError('bulten.hata.fotoSayi');
       const veri = await rawBody(req, MAX_VIDEO_BYTES);
@@ -180,7 +181,7 @@ export function bultenRoutes({ db }) {
     if (req.method === 'PUT' && parca.length === 2 && parca[1] === 'ayar') {
       const ay = parca[0];
       if (!aylar.includes(ay)) return send(res, 404, { error: 'bulten.hata.ay' });
-      if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+      if (!bultenYetkili(user)) return send(res, 403, { error: 'bulten.hata.yetki' });
       const ayar = ayarDogrula(await body(req));
       await db.run('DELETE FROM bulten_ayar WHERE ay=?', [ay]);
       await db.run('INSERT INTO bulten_ayar (ay,ayar,updated) VALUES (?,?,?)', [ay, JSON.stringify(ayar), new Date().toISOString()]);
@@ -205,7 +206,7 @@ export function bultenRoutes({ db }) {
     if (req.method === 'POST' && parca.length === 2 && parca[1] === 'yazi') {
       const ay = parca[0];
       if (!aylar.includes(ay)) return send(res, 404, { error: 'bulten.hata.ay' });
-      if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+      if (!bultenYetkili(user)) return send(res, 403, { error: 'bulten.hata.yetki' });
       const { baslik, metin, fotoId } = await yaziGovde(await body(req, 64000), ay);
       const son = await db.get('SELECT MAX(sira) AS s FROM bulten_yazi WHERE ay=?', [ay]);
       const simdi = new Date().toISOString();
@@ -224,7 +225,7 @@ export function bultenRoutes({ db }) {
         res.end(req.method === 'HEAD' ? undefined : veri);
         return true;
       }
-      if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+      if (!bultenYetkili(user)) return send(res, 403, { error: 'bulten.hata.yetki' });
       if (!await db.get('SELECT id FROM bulten_yazi WHERE id=?', [id])) return send(res, 404, { error: 'bulten.hata.yazi' });
       if (req.method === 'DELETE') {
         await db.run("UPDATE bulten_yazi SET gorsel_tur='',gorsel_veri=NULL,gorsel_boyut=0 WHERE id=?", [id]);
@@ -240,7 +241,7 @@ export function bultenRoutes({ db }) {
       return send(res, 200, { ok: true });
     }
     if (parca[0] === 'yazi' && parca.length === 2 && ['PUT', 'DELETE'].includes(req.method)) {
-      if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+      if (!bultenYetkili(user)) return send(res, 403, { error: 'bulten.hata.yetki' });
       const yazi = await db.get('SELECT id,ay FROM bulten_yazi WHERE id=?', [Number(parca[1]) || 0]);
       if (!yazi) return send(res, 404, { error: 'bulten.hata.yazi' });
       if (req.method === 'DELETE') {
@@ -269,7 +270,7 @@ export function bultenRoutes({ db }) {
     if (req.method === 'PUT' && parca.length === 1) {
       const ay = parca[0];
       if (!aylar.includes(ay)) return send(res, 404, { error: 'bulten.hata.ay' });
-      if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+      if (!bultenYetkili(user)) return send(res, 403, { error: 'bulten.hata.yetki' });
       const g = await body(req);
       const metin = v => {
         const s = typeof v === 'string' ? v.replace(/\r\n/g, '\n').trim() : '';
@@ -378,7 +379,7 @@ export function bultenRoutes({ db }) {
 
     return send(res, 200, {
       klasorDosyaSayi,
-      ay, aylar, bas, son, gecmis, sonrakiAy, duzenleyebilir: !!user?.koordinator, uye: !!user, fotolar, maxFoto: AYLIK_FOTO,
+      ay, aylar, bas, son, gecmis, sonrakiAy, duzenleyebilir: !!bultenYetkili(user), uye: !!user, fotolar, maxFoto: AYLIK_FOTO,
       ayar, yazilar,
       not: { yapilanlar: not?.yapilanlar || '', yapilacaklar: not?.yapilacaklar || '',
         updated: not?.updated || null, yazan: not && user ? (not.ad || not.username || '') : '' },

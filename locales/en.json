@@ -1420,5 +1420,13 @@
   "yonetim.tema.yazi.yuvarlak": "Trebuchet (soft)",
   "yonetim.tema.yazi.genis": "Verdana (wide, legible)",
   "yonetim.tema.yazi.tirnakli": "Georgia (serif)",
-  "yonetim.tema.hepsiSifirla": "Reset all colours to default"
+  "yonetim.tema.hepsiSifirla": "Reset all colours to default",
+  "yonetim.sekme.menu": "Menu",
+  "yonetim.menu.ipucu": "Order and visibility of the top menu items. A hidden item is only removed from the menu; the page and permissions stay the same. Item names are edited under \"Texts\" (menu.… and tanitim.menu.… keys). The Admin item cannot be hidden.",
+  "yonetim.menu.uye": "Member menu (signed in)",
+  "yonetim.menu.ziyaretci": "Visitor menu (landing page)",
+  "yonetim.menu.goster": "Show in menu",
+  "yonetim.menu.koordinator": "Coordinators only",
+  "yonetim.menu.yonetici": "Admins only",
+  "yonetim.menu.kaydedildi": "Saved. The menu changes when the page is reloaded."
 }

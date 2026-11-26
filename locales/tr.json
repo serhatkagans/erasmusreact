@@ -1420,5 +1420,13 @@
   "yonetim.tema.yazi.yuvarlak": "Trebuchet (yumuşak)",
   "yonetim.tema.yazi.genis": "Verdana (geniş, okunaklı)",
   "yonetim.tema.yazi.tirnakli": "Georgia (tırnaklı)",
-  "yonetim.tema.hepsiSifirla": "Bütün renkleri varsayılana döndür"
+  "yonetim.tema.hepsiSifirla": "Bütün renkleri varsayılana döndür",
+  "yonetim.sekme.menu": "Menü",
+  "yonetim.menu.ipucu": "Üst menüdeki maddelerin sırası ve görünürlüğü. Gizlenen madde yalnızca menüden kalkar; sayfa ve yetkiler değişmez. Madde adları \"Metinler\" sekmesinden değişir (menu.… ve tanitim.menu.… anahtarları). Yönetim maddesi gizlenemez.",
+  "yonetim.menu.uye": "Üye menüsü (giriş yapanlar)",
+  "yonetim.menu.ziyaretci": "Ziyaretçi menüsü (tanıtım sayfası)",
+  "yonetim.menu.goster": "Menüde göster",
+  "yonetim.menu.koordinator": "Yalnızca koordinatör görür",
+  "yonetim.menu.yonetici": "Yalnızca yönetici görür",
+  "yonetim.menu.kaydedildi": "Kaydedildi. Menü sayfa yenilenince değişir."
 }

@@ -22,7 +22,7 @@ export default function Kabuk({ children, logolar = false }) {
    Tek liste, her sayfada aynı sıra ve aynı öğeler. `sayfa`: aria-current
    için karşılaştırılan dosya adı. Kişiye ait bağlantılar (profil, parola,
    çıkış) hesap menüsündedir. */
-const MENU = [
+export const MENU = [
   { anahtar: 'menu.pano', href: 'pano.html' },
   { anahtar: 'menu.bulten', href: 'bulten.html' },
   { anahtar: 'menu.anasayfa', href: './', sayfa: 'index.html' },
@@ -39,7 +39,7 @@ const MENU = [
 
 /* Oturumsuz ziyaretçi yalnızca tanıtım sayfasını görür; menüsü o sayfanın
    bölümlerine götüren çapalardır (bkz. sayfalar/Tanitim.jsx). */
-const ZIYARETCI_MENU = [
+export const ZIYARETCI_MENU = [
   { anahtar: 'tanitim.menu.hakkinda', href: '#hakkinda' },
   { anahtar: 'tanitim.menu.ciktilar', href: '#ciktilar' },
   { anahtar: 'tanitim.menu.yol', href: '#yol-haritasi' },
@@ -47,6 +47,13 @@ const ZIYARETCI_MENU = [
   { anahtar: 'tanitim.menu.iletisim', href: '#takip' },
   { anahtar: 'menu.bulten', href: 'bulten.html' },
 ];
+
+/** Yönetim → Menü: sıra ve gizlenenler (sunucu: lib/site.mjs · menuDogrula). */
+export function menuDuzenle(liste, ayar) {
+  if (!ayar) return liste;
+  const yer = a => { const i = ayar.sira.indexOf(a); return i < 0 ? 999 : i; };
+  return liste.filter(o => !ayar.gizli.includes(o.anahtar)).sort((x, y) => yer(x.anahtar) - yer(y.anahtar));
+}
 
 /** Açılır panel: dışarı tıklayınca ve Esc ile kapanır. */
 function useAcilir() {
@@ -79,7 +86,7 @@ function UstBant() {
     return () => document.removeEventListener('keydown', tus);
   }, [menuAcik]);
 
-  const ogeler = MENU.filter(o => (!o.koordinator || k?.koordinator) && (!o.yonetici || k?.yonetici));
+  const ogeler = menuDuzenle(MENU, durum.menu?.uye).filter(o => (!o.koordinator || k?.koordinator) && (!o.yonetici || k?.yonetici));
   /* Bülten herkese açık: ziyaretçi orada da tanıtım menüsünü görür;
      çapalar ana sayfaya döner. */
   const tanitim = !k && (sayfa === 'index.html' || sayfa === 'bulten.html');
@@ -98,7 +105,7 @@ function UstBant() {
           {k && ogeler.map(o => (
             <a key={o.href} href={o.href} aria-current={(o.sayfa || o.href) === sayfa ? 'page' : undefined}>{t(o.anahtar)}</a>
           ))}
-          {tanitim && ZIYARETCI_MENU.map(o => (
+          {tanitim && menuDuzenle(ZIYARETCI_MENU, durum.menu?.ziyaretci).map(o => (
             <a key={o.href} href={ziyaretciAdres(o.href)} aria-current={o.href === sayfa ? 'page' : undefined}
               onClick={() => setMenuAcik(false)}>{t(o.anahtar)}</a>
           ))}

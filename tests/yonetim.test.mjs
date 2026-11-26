@@ -104,3 +104,26 @@ test('yönetim: görünüm — renk farkı tema.css olur ve sayfaya eklenir; yal
   assert.equal((await anonim.iste('/tema.css')).veri.toString(), '');
   assert.doesNotMatch((await anonim.iste('/giris.html')).veri.toString(), /tema\.css/);
 });
+
+test('yönetim: menü — sıra ve gizlenenler açılışa yansır; yönetim maddesi gizlenemez', async () => {
+  const admin = await istemci(sunucu, YONETICI);
+  const once = (await admin.iste('/api/acilis')).veri.menu;
+  assert.equal(once.uye.sira[0], 'menu.pano');
+  assert.deepEqual(once.uye.gizli, []);
+
+  const yaz = await admin.iste('/api/yonetim/menu', { method: 'PUT', body: {
+    uye: { sira: ['menu.bulten', 'yok.boyle'], gizli: ['menu.drive', 'menu.yonetim'] },
+    ziyaretci: { gizli: ['tanitim.menu.yol'] },
+  } });
+  assert.equal(yaz.durum, 200);
+  const m = (await admin.iste('/api/acilis')).veri.menu;
+  assert.equal(m.uye.sira[0], 'menu.bulten');
+  assert.ok(!m.uye.sira.includes('yok.boyle'));
+  assert.equal(m.uye.sira.length, once.uye.sira.length, 'eksik maddeler sona eklenir');
+  assert.deepEqual(m.uye.gizli, ['menu.drive']);
+  assert.deepEqual(m.ziyaretci.gizli, ['tanitim.menu.yol']);
+  assert.equal((await admin.iste('/api/yonetim/menu', { method: 'PUT', body: { uye: { sira: 'x' } } })).durum, 400);
+
+  await admin.iste('/api/yonetim/menu', { method: 'PUT', body: {} });
+  assert.deepEqual((await admin.iste('/api/acilis')).veri.menu, once);
+});

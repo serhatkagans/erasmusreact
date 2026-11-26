@@ -24,7 +24,7 @@ import { driveRoutes } from './routes/drive.mjs';
 import { bultenRoutes, ayCoz } from './routes/bulten.mjs';
 import { anketRoutes } from './routes/anket.mjs';
 import { yonetimRoutes } from './routes/yonetim.mjs';
-import { siteYukle, ozelGorsel, temaBilgisi } from './lib/site.mjs';
+import { siteYukle, ozelGorsel, temaBilgisi, menuAyari } from './lib/site.mjs';
 
 /**
  * HTTP sunucusu: ortak başlıklar, oturum ve dil çözümü, yönlendirme zinciri
@@ -237,6 +237,7 @@ const server = createServer(async (req, res) => {
            bir gün uzayacağını bilmekten daha yararlı. */
         diller: languages.map(({ code, name, ready }) => ({ code, name, ready })),
         proje: PROJECT,
+        menu: menuAyari(),
         ortaklar: partners,
         ispaketleri: workPackages.map(w => w.id),
         turler: types,

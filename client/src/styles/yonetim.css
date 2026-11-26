@@ -46,3 +46,13 @@
 .yonetim-tema-secici input[type="color"] { width: 44px; height: 32px; padding: 0; border: 1px solid var(--cizgi-koyu); border-radius: 6px; background: none; cursor: pointer }
 .yonetim-tema-secici code { font-size: .82rem; color: var(--soluk) }
 .yonetim-tema-yazi { max-width: 320px; margin-bottom: 8px }
+
+/* Menü sekmesi */
+.yonetim-menuler { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start }
+.yonetim-menu-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px }
+.yonetim-menu-liste li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 1px solid var(--cizgi); border-radius: 10px; background: var(--kart) }
+.yonetim-menu-liste li.gizli { background: var(--zemin); opacity: .65 }
+.yonetim-menu-liste li.gizli .yonetim-menu-ad strong { text-decoration: line-through }
+.yonetim-menu-ad { flex: 1; display: grid; min-width: 0 }
+.yonetim-menu-ad small { font-size: .75rem; color: var(--soluk) }
+.yonetim-menu-liste .onay { font-size: .85rem; white-space: nowrap }

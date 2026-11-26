@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { durum, t, iste, hataMetni } from '../ortak.js';
 import { useVeri } from '../kancalar.js';
 import { useKonum, capaAyarla } from '../yonlendirme.js';
-import { useBaslik } from '../bilesenler/Kabuk.jsx';
+import { useBaslik, MENU, ZIYARETCI_MENU } from '../bilesenler/Kabuk.jsx';
 import { onayla, bildir } from '../bilesenler/Kutu.jsx';
 import '../styles/yonetim.css';
 
@@ -16,7 +16,7 @@ import '../styles/yonetim.css';
  * bant ve menü sayfa açılışında yüklendiği için künye ve metin değişikliği
  * orada sayfa yenilenince görünür.
  */
-const SEKMELER = ['kunye', 'kurumlar', 'metinler', 'gorseller', 'gorunum'];
+const SEKMELER = ['kunye', 'kurumlar', 'metinler', 'gorseller', 'gorunum', 'menu'];
 
 export default function Yonetim() {
   useBaslik('yonetim.baslik');
@@ -46,6 +46,7 @@ export default function Yonetim() {
             {sekme === 'metinler' && <Metinler />}
             {sekme === 'gorseller' && <Gorseller />}
             {sekme === 'gorunum' && <Gorunum />}
+            {sekme === 'menu' && <MenuSekmesi />}
           </>
         )}
       </div>
@@ -453,6 +454,95 @@ function GorunumForm({ veri, yenile }) {
           <button type="button" className="dugme dugme-hayalet" disabled={bekliyor} onClick={async () => {
             if (await onayla(t('yonetim.sifirlaOnay'), { evet: t('yonetim.sifirla'), tehlike: true })) kaydet({});
           }}>{t('yonetim.tema.hepsiSifirla')}</button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/* --- Menü --------------------------------------------------------------------
+   Üst menünün sırası ve gizlenen maddeler (lib/site.mjs · menuDogrula).
+   Madde adları Metinler sekmesinden değişir. Gizlemek sayfayı kapatmaz,
+   yalnızca menüden kaldırır. Yönetim maddesi gizlenemez. */
+const MENU_LISTELERI = [['uye', MENU], ['ziyaretci', ZIYARETCI_MENU]];
+
+function MenuSekmesi() {
+  const { veri, yenile } = useVeri('api/yonetim/menu');
+  if (!veri) return <p className="bos-durum">{t('genel.yukleniyor')}</p>;
+  return <MenuForm key={JSON.stringify(veri.menu)} veri={veri} yenile={yenile} />;
+}
+
+function MenuForm({ veri, yenile }) {
+  const [menu, setMenu] = useState(veri.menu);
+  const [hata, setHata] = useState('');
+  const [bekliyor, setBekliyor] = useState(false);
+  const degisti = JSON.stringify(menu) !== JSON.stringify(veri.menu);
+  const varsayilanda = JSON.stringify(veri.menu) === JSON.stringify(veri.varsayilan);
+
+  const kaydet = async govde => {
+    setHata('');
+    setBekliyor(true);
+    try {
+      await iste('api/yonetim/menu', { method: 'PUT', body: JSON.stringify(govde) });
+      bildir(t('yonetim.menu.kaydedildi'));
+      yenile();
+    } catch (err) { setHata(err.message); } finally { setBekliyor(false); }
+  };
+  const tasi = (liste, i, yon) => {
+    const sira = [...menu[liste].sira];
+    [sira[i], sira[i + yon]] = [sira[i + yon], sira[i]];
+    setMenu({ ...menu, [liste]: { ...menu[liste], sira } });
+  };
+  const gizle = (liste, anahtar, gizli) => {
+    const g = menu[liste].gizli.filter(a => a !== anahtar);
+    setMenu({ ...menu, [liste]: { ...menu[liste], gizli: gizli ? [...g, anahtar] : g } });
+  };
+
+  return (
+    <form onSubmit={o => { o.preventDefault(); kaydet(menu); }}>
+      <p className="alan-ipucu yonetim-not">{t('yonetim.menu.ipucu')}</p>
+      <div className="yonetim-menuler">
+        {MENU_LISTELERI.map(([liste, ogeler]) => (
+          <div key={liste} className="yonetim-kart">
+            <h2>{t(`yonetim.menu.${liste}`)}</h2>
+            <ol className="yonetim-menu-liste">
+              {menu[liste].sira.map((anahtar, i) => {
+                const oge = ogeler.find(o => o.anahtar === anahtar);
+                if (!oge) return null;
+                const gizli = menu[liste].gizli.includes(anahtar);
+                const kilitli = anahtar === 'menu.yonetim';
+                return (
+                  <li key={anahtar} className={gizli ? 'gizli' : undefined}>
+                    <span className="yonetim-menu-ad">
+                      <strong>{t(anahtar)}</strong>
+                      {oge.koordinator && <small>{t('yonetim.menu.koordinator')}</small>}
+                      {oge.yonetici && <small>{t('yonetim.menu.yonetici')}</small>}
+                    </span>
+                    <label className="onay">
+                      <input type="checkbox" checked={!gizli} disabled={kilitli} onChange={e => gizle(liste, anahtar, !e.target.checked)} />
+                      <span>{t('yonetim.menu.goster')}</span>
+                    </label>
+                    <span className="yonetim-eylem">
+                      <button type="button" className="bulten-duzen-dugme" disabled={i === 0} aria-label={t('bulten.duzen.yukari')} title={t('bulten.duzen.yukari')}
+                        onClick={() => tasi(liste, i, -1)}>↑</button>
+                      <button type="button" className="bulten-duzen-dugme" disabled={i === menu[liste].sira.length - 1} aria-label={t('bulten.duzen.asagi')} title={t('bulten.duzen.asagi')}
+                        onClick={() => tasi(liste, i, 1)}>↓</button>
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        ))}
+      </div>
+      <p className="hata" role="alert">{hata}</p>
+      <div className="yonetim-eylem">
+        <button type="submit" className="dugme dugme-birincil" disabled={bekliyor || !degisti}>{t('genel.kaydet')}</button>
+        {degisti && <button type="button" className="dugme dugme-ikincil" disabled={bekliyor} onClick={() => setMenu(veri.menu)}>{t('genel.vazgec')}</button>}
+        {!varsayilanda && (
+          <button type="button" className="dugme dugme-hayalet" disabled={bekliyor} onClick={async () => {
+            if (await onayla(t('yonetim.sifirlaOnay'), { evet: t('yonetim.sifirla'), tehlike: true })) kaydet({});
+          }}>{t('yonetim.sifirla')}</button>
         )}
       </div>
     </form>

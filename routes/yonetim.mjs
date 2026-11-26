@@ -4,7 +4,7 @@ import { loadLocale } from '../lib/i18n.mjs';
 import {
   siteYukle, projeDogrula, ortakDogrula, varsayilanProje, varsayilanOrtak,
   gorselAdlari, gorselTuru, ozelGorsel, MAX_GORSEL,
-  TEMA_RENKLERI, TEMA_YAZILARI, temaDogrula, temaBilgisi,
+  TEMA_RENKLERI, TEMA_YAZILARI, temaDogrula, temaBilgisi, menuDogrula, menuAyari,
 } from '../lib/site.mjs';
 
 /**
@@ -20,6 +20,7 @@ import {
  *   GET    /api/yonetim/gorseller       değiştirilebilen görseller
  *   PUT    /api/yonetim/gorsel/<ad>     ham gövde: yeni dosya
  *   DELETE /api/yonetim/gorsel/<ad>     varsayılana dön
+ *   GET|PUT /api/yonetim/menu           menü sırası ve gizlenenler (boş gövde: varsayılan)
  *   GET|PUT /api/yonetim/tema           renkler ve yazı tipi (boş gövde: varsayılan)
  *
  * Kaydedilen her şey `siteYukle` ile hemen uygulanır; yeniden başlatma yok.
@@ -104,6 +105,17 @@ export function yonetimRoutes({ db }) {
         await siteYukle(db);
         return send(res, 200, { ok: true });
       }
+    }
+
+    if (yol === '/api/yonetim/menu') {
+      if (req.method === 'PUT') await ayarYaz('menu', await body(req).then(g => {
+        const m = menuDogrula(g);
+        const v = menuDogrula({});
+        /* Varsayılanla aynıysa kayıt silinir. */
+        return JSON.stringify(m) === JSON.stringify(v) ? {} : m;
+      }));
+      else if (req.method !== 'GET') return send(res, 405, { error: 'genel.hata' });
+      return send(res, 200, { menu: menuAyari(), varsayilan: menuDogrula({}) });
     }
 
     if (yol === '/api/yonetim/tema') {
