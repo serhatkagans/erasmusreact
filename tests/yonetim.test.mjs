@@ -127,3 +127,30 @@ test('yönetim: menü — sıra ve gizlenenler açılışa yansır; yönetim mad
   await admin.iste('/api/yonetim/menu', { method: 'PUT', body: {} });
   assert.deepEqual((await admin.iste('/api/acilis')).veri.menu, once);
 });
+
+test('yönetim: kurallar — sınırlar açılışa, bülten yetkisi uçlara yansır; varsayılana döner', async () => {
+  const admin = await istemci(sunucu, YONETICI);
+  const koordinator = await istemci(sunucu, KOORDINATOR); // hbv
+  const ay = (await admin.iste('/api/bulten')).veri.ay;
+  const govde = { gizli: [], sira: [], gizliMadde: [], manset: '' };
+
+  assert.equal((await admin.iste('/api/yonetim/kurallar', { method: 'PUT', body: { minParola: 3 } })).durum, 400);
+  assert.equal((await admin.iste('/api/yonetim/kurallar', { method: 'PUT', body: { driveMb: 999 } })).durum, 400);
+  assert.equal((await admin.iste('/api/yonetim/kurallar', { method: 'PUT', body: { bultenIlkAy: '2026-13' } })).durum, 400);
+  assert.equal((await koordinator.iste('/api/yonetim/kurallar', { method: 'PUT', body: { minParola: 20 } })).durum, 403);
+
+  assert.equal((await koordinator.iste(`/api/bulten/${ay}/ayar`, { method: 'PUT', body: govde })).durum, 200, 'hbv varsayılan olarak düzenler');
+  const yaz = await admin.iste('/api/yonetim/kurallar', { method: 'PUT', body: { minParola: 16, driveMb: 20, bultenKurumlari: ['bte', 'yok'] } });
+  assert.equal(yaz.durum, 200);
+  assert.deepEqual(yaz.veri.degisen.sort(), ['bultenKurumlari', 'driveMb', 'minParola']);
+  const acilis = (await admin.iste('/api/acilis')).veri;
+  assert.equal(acilis.minParola, 16);
+  assert.equal(acilis.kurallar.driveMb, 20);
+  assert.equal((await koordinator.iste(`/api/bulten/${ay}/ayar`, { method: 'PUT', body: govde })).durum, 403, 'listeden çıkan kurum düzenleyemez');
+  assert.equal((await koordinator.iste('/api/bulten')).veri.duzenleyebilir, false);
+  assert.equal((await admin.iste(`/api/bulten/${ay}/ayar`, { method: 'PUT', body: govde })).durum, 200, 'yönetici her zaman');
+
+  await admin.iste('/api/yonetim/kurallar', { method: 'PUT', body: { ...yaz.veri.varsayilan } });
+  assert.equal((await admin.iste('/api/acilis')).veri.minParola, 12);
+  assert.equal((await koordinator.iste(`/api/bulten/${ay}/ayar`, { method: 'PUT', body: govde })).durum, 200);
+});

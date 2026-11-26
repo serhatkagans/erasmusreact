@@ -13,7 +13,7 @@ export const bolumMu = q => q.type === 'bolum';
 export const yanitlanabilir = q => !bolumMu(q);
 
 /* Dosya sorusu: sunucudaki sınırlarla aynı (lib/data.mjs). */
-export const MAX_DOSYA = 5, MAX_DOSYA_MB = 10;
+export const MAX_DOSYA = 5;
 export const DOSYA_KABUL = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.jpg,.jpeg,.png,.webp,.txt,.csv,.zip';
 export const METIN_LISTE_SINIRI = 20;
 

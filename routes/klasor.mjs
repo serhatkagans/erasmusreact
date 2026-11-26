@@ -1,8 +1,9 @@
 import { ValidationError } from '../lib/data.mjs';
+import { KURALLAR, MB } from '../lib/data.mjs';
 import { send, body, rawBody } from '../lib/http.mjs';
 import {
   KLASORLER, klasorDogrula, adAnahtari, yukleyebilir, sorumlu, dosyaYetkisi,
-  dosyaBilgisi, aciklamaDogrula, MAX_KLASOR_BYTES, KLASOR_TURLERI, MAX_ACIKLAMA, BUTCE, TAKVIM, bagliParca,
+  dosyaBilgisi, aciklamaDogrula, KLASOR_TURLERI, MAX_ACIKLAMA, BUTCE, TAKVIM, bagliParca,
 } from '../lib/klasor.mjs';
 import { parcalar, DOSYA_TURLERI } from '../lib/faaliyet.mjs';
 
@@ -143,7 +144,7 @@ export function klasorRoutes({ db }) {
 
     return {
       klasorler, dosyalar, butce: BUTCE, takvim: TAKVIM,
-      sinir: { bayt: MAX_KLASOR_BYTES, uzantilar: Object.keys(KLASOR_TURLERI), aciklama: MAX_ACIKLAMA },
+      sinir: { bayt: KURALLAR.klasorMb * MB, uzantilar: Object.keys(KLASOR_TURLERI), aciklama: MAX_ACIKLAMA },
     };
   }
 
@@ -185,7 +186,7 @@ export function klasorRoutes({ db }) {
       if (!yukleyebilir(user, hedef)) return send(res, 403, { error: 'klasor.hata.yetki' });
       const bilgi = dosyaBilgisi(baslik(req, 'x-file-name'));
       const aciklama = aciklamaDogrula(baslik(req, 'x-aciklama'));
-      const veri = await rawBody(req, MAX_KLASOR_BYTES);
+      const veri = await rawBody(req, KURALLAR.klasorMb * MB);
       if (!veri.length) throw new ValidationError('klasor.hata.bos');
 
       const an = simdi();
@@ -242,7 +243,7 @@ export function klasorRoutes({ db }) {
       const bilgi = dosyaBilgisi(baslik(req, 'x-file-name'));
       const { n, son } = await db.get('SELECT CAST(count(*) AS INTEGER) AS n, max(no) AS son FROM klasor_surum WHERE dosya_id=?', [id]);
       if (Number(n) >= MAX_SURUM) throw new ValidationError('klasor.hata.cokSurum');
-      const veri = await rawBody(req, MAX_KLASOR_BYTES);
+      const veri = await rawBody(req, KURALLAR.klasorMb * MB);
       if (!veri.length) throw new ValidationError('klasor.hata.bos');
       await surumEkle(id, Number(son || 0) + 1, bilgi, veri, user.id);
       /* Dosyanın adı geçerli sürümün adını izler. */

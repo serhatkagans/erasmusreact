@@ -1,7 +1,8 @@
 import { ValidationError } from '../lib/data.mjs';
+import { KURALLAR, MB } from '../lib/data.mjs';
 import { send, body, rawBody, ekGonder, basliktanOku } from '../lib/http.mjs';
 import { DOSYA_TURLERI, parcalar } from '../lib/faaliyet.mjs';
-import { dosyaBilgisi, MAX_KLASOR_BYTES, parcaKlasoru } from '../lib/klasor.mjs';
+import { dosyaBilgisi, parcaKlasoru } from '../lib/klasor.mjs';
 
 /**
  * Faaliyet dosyası: bkz. lib/faaliyet.mjs.
@@ -87,7 +88,7 @@ export function faaliyetRoutes({ db }) {
       const tur = url.searchParams.get('tur');
       if (!DOSYA_TURLERI.includes(tur) || !liste.includes(tur)) throw new ValidationError('faaliyet.hata.tur');
       const bilgi = dosyaBilgisi(basliktanOku(req, 'x-file-name'));
-      const veri = await rawBody(req, MAX_KLASOR_BYTES);
+      const veri = await rawBody(req, KURALLAR.klasorMb * MB);
       if (!veri.length) throw new ValidationError('klasor.hata.bos');
       const id = await db.insert(
         'INSERT INTO event_files (event_id,tur,ad,mime,boyut,veri,yukleyen,created) VALUES (?,?,?,?,?,?,?,?)',

@@ -1,7 +1,8 @@
 import { ValidationError, partnerIds as ALL_CITIES } from '../lib/data.mjs';
+import { KURALLAR, MB } from '../lib/data.mjs';
 import { send, body, rawBody } from '../lib/http.mjs';
 import { zip } from '../lib/zip.mjs';
-import { todayTr, MAX_DRIVE_FILE, DRIVE_QUOTA, MAX_ZIP_BYTES, MAX_VERSIONS, ROLES, MEMBER_ROLES, KINDS, DATES, INLINE_TYPES, cleanName, typeOf, newToken, validToken, loadTree, ancestry, isLive, childrenOf, subtree, zipEntries, uniquePaths, accessOf, visiblePath, canEdit, canAdd, matcher, within, rankOf } from '../lib/drive.mjs';
+import { todayTr, DRIVE_QUOTA, MAX_ZIP_BYTES, MAX_VERSIONS, ROLES, MEMBER_ROLES, KINDS, DATES, INLINE_TYPES, cleanName, typeOf, newToken, validToken, loadTree, ancestry, isLive, childrenOf, subtree, zipEntries, uniquePaths, accessOf, visiblePath, canEdit, canAdd, matcher, within, rankOf } from '../lib/drive.mjs';
 
 const gecersiz = message => { throw new ValidationError(message); };
 
@@ -314,9 +315,9 @@ export function driveRoutes({ db }) {
       const parent = targetFolder(url.searchParams.get('ust'));
       const name = cleanName(fileName(req), 'Dosya adı');
       const declared = Number(req.headers['content-length'] || 0);
-      if (declared > MAX_DRIVE_FILE) gecersiz(`Dosya en fazla ${MAX_DRIVE_FILE / 1048576} MB olabilir.`);
+      if (declared > KURALLAR.driveMb * MB) gecersiz(`Dosya en fazla ${KURALLAR.driveMb} MB olabilir.`);
       await checkQuota(declared);
-      const data = await rawBody(req, MAX_DRIVE_FILE);
+      const data = await rawBody(req, KURALLAR.driveMb * MB);
       const row = await db.get('INSERT INTO drive_items(parent_id,kind,name,type,size,data,created_by,created,updated,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?) RETURNING id',
         [parent, 'file', name, typeOf(name), data.length, data, by, now, now, by]);
       await logAction(Number(row.id), 'upload', { name, kind: 'file', size: data.length }, parent);
@@ -490,10 +491,10 @@ export function driveRoutes({ db }) {
       if (!canEdit(role)) return noEdit();
       if (item.kind !== 'file' || trashed) gecersiz('Yalnızca dosyanın yeni sürümü yüklenebilir.');
       const declared = Number(req.headers['content-length'] || 0);
-      if (declared > MAX_DRIVE_FILE) gecersiz(`Dosya en fazla ${MAX_DRIVE_FILE / 1048576} MB olabilir.`);
+      if (declared > KURALLAR.driveMb * MB) gecersiz(`Dosya en fazla ${KURALLAR.driveMb} MB olabilir.`);
       /* Eski içerik silinmez, sürüm geçmişine gider: kota ikisini birden sayar. */
       await checkQuota(declared);
-      const data = await rawBody(req, MAX_DRIVE_FILE);
+      const data = await rawBody(req, KURALLAR.driveMb * MB);
       await keepVersion(id, by, now);
       await db.run('UPDATE drive_items SET data=?,size=?,updated=?,updated_by=? WHERE id=?', [data, data.length, now, by, id]);
       await logAction(id, 'version', { name: item.name, kind: 'file', size: data.length }, item.parent_id);

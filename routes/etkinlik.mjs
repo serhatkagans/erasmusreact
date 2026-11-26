@@ -3,7 +3,7 @@ import {
   listOf, packList, daysBetween, requireDay, requireOneOf, requireText, requirePartners,
   MAX_RANGE_DAYS, MAX_TITLE, PROJECT,
 } from '../lib/data.mjs';
-import { MAX_PHOTOS, MAX_PHOTO_BYTES, PHOTO_TYPES, sniffPhoto } from '../lib/data.mjs';
+import { KURALLAR, MB, PHOTO_TYPES, sniffPhoto } from '../lib/data.mjs';
 import { dosyaOzetleri } from '../lib/faaliyet.mjs';
 import { send, body, rawBody, ICS } from '../lib/http.mjs';
 import { buildIcs } from '../lib/ics.mjs';
@@ -182,7 +182,7 @@ export function etkinlikRoutes({ db }) {
         e.fotolar = fotolar.filter(f => f.event_id === e.id).map(f => ({ id: f.id, ad: f.ad }));
         e.dosya = ozet[e.id] || null;
       }
-      return send(res, 200, { etkinlikler: rows, maxFoto: MAX_PHOTOS });
+      return send(res, 200, { etkinlikler: rows, maxFoto: KURALLAR.etkinlikFoto });
     }
 
     if (rest === '' && req.method === 'POST') {
@@ -217,11 +217,11 @@ export function etkinlikRoutes({ db }) {
       if (!mayEdit(user, row)) return send(res, 403, { error: 'Bu etkinliğe fotoğraf ekleme yetkiniz yok.' });
 
       const adet = await db.get('SELECT CAST(count(*) AS INTEGER) AS n FROM event_photos WHERE event_id=?', [id]);
-      if (Number(adet.n) >= MAX_PHOTOS) {
-        throw new ValidationError(`Bir etkinliğe en fazla ${MAX_PHOTOS} fotoğraf eklenebilir.`);
+      if (Number(adet.n) >= KURALLAR.etkinlikFoto) {
+        throw new ValidationError(`Bir etkinliğe en fazla ${KURALLAR.etkinlikFoto} fotoğraf eklenebilir.`);
       }
 
-      const veri = await rawBody(req, MAX_PHOTO_BYTES);
+      const veri = await rawBody(req, KURALLAR.fotoMb * MB);
       if (!veri.length) throw new ValidationError('Dosya boş.');
       /* Türü baytlardan çıkarırız: Content-Type başlığı da uzantı da
          istemci tarafından serbestçe yazılabilir. */

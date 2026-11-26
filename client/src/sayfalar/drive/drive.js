@@ -42,7 +42,8 @@ const numberFormat = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 1 }
 const todayTr = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Istanbul' }).format(new Date());
 const dayText = day => longDay.format(new Date(day + 'T12:00:00'));
 const expiryText = day => (day < todayTr() ? ' · süresi doldu' : ` · ${dayText(day)} sonuna kadar`);
-const MAX_FILE_MB = 50;
+/* Yönetim → Kurallar (açılış verisi); sunucu yine de kendisi denetler. */
+const maxDosyaMb = () => durum.kurallar?.driveMb ?? 50;
 /* Arama Türkçe harflerden bağımsızdır ("ozet" → "Özet"); sunucudaki fold ile aynı. */
 const FOLD = { ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u' };
 const fold = text => String(text ?? '').toLocaleLowerCase('tr-TR').replace(/[çğıöşüâîû]/g, c => FOLD[c]);
@@ -1551,9 +1552,9 @@ function askConflict(clashes) {
 
 async function enqueue(entries, parent) {
   /* entries: [{ file, path: ["Klasör", "Alt"] }] — path dosyanın üst klasörleri. */
-  const oversize = entries.filter(entry => entry.file.size > MAX_FILE_MB * 1048576);
-  if (oversize.length) toast(`${oversize.length === 1 ? `“${oversize[0].file.name}”` : `${oversize.length} dosya`} ${MAX_FILE_MB} MB'tan büyük olduğu için yüklenmedi.`, true);
-  const ok = entries.filter(entry => entry.file.size <= MAX_FILE_MB * 1048576);
+  const oversize = entries.filter(entry => entry.file.size > maxDosyaMb() * 1048576);
+  if (oversize.length) toast(`${oversize.length === 1 ? `“${oversize[0].file.name}”` : `${oversize.length} dosya`} ${maxDosyaMb()} MB'tan büyük olduğu için yüklenmedi.`, true);
+  const ok = entries.filter(entry => entry.file.size <= maxDosyaMb() * 1048576);
   if (!ok.length) return;
   /* Aynı adlı dosya: Google Drive'daki "Yükleme seçenekleri". Değiştir seçilirse
      dosya mevcut olanın yeni sürümü olur (adı, yeri, paylaşımı ve yıldızı

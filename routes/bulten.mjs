@@ -1,4 +1,4 @@
-import { listOf, ValidationError, requireText, sniffPhoto, PHOTO_TYPES, MAX_PHOTO_BYTES } from '../lib/data.mjs';
+import { listOf, ValidationError, requireText, sniffPhoto, PHOTO_TYPES, KURALLAR, MB } from '../lib/data.mjs';
 import { send, body, rawBody } from '../lib/http.mjs';
 import { CIKTILAR } from '../lib/cikti.mjs';
 import { bultenYetkili } from '../lib/site.mjs';
@@ -32,8 +32,8 @@ import { bultenYetkili } from '../lib/site.mjs';
  * sayı olarak görünür. Yazan her uç koordinatör ister.
  */
 
-/** Bülten bu aydan başlar (hazırlık ayı; proje 1 Ekim 2026'da başladı). */
-export const ILK_AY = '2026-09';
+/* Bülten KURALLAR.bultenIlkAy'dan başlar (varsayılan 2026-09: hazırlık ayı;
+   proje 1 Ekim 2026'da başladı). Yönetim → Kurallar'dan değişir. */
 
 const ayEkle = (ay, n) => {
   const [y, a] = ay.split('-').map(Number);
@@ -45,7 +45,7 @@ const aySonu = ay => new Date(Date.parse(ayEkle(ay, 1) + '-01T00:00:00Z') - 8640
 /** İlk aydan içinde bulunulan aya kadar bütün aylar, yeniden eskiye. */
 export function bultenAylari(bugun = new Date().toISOString().slice(0, 10)) {
   const aylar = [];
-  for (let ay = ILK_AY; ay <= bugun.slice(0, 7); ay = ayEkle(ay, 1)) aylar.unshift(ay);
+  for (let ay = KURALLAR.bultenIlkAy; ay <= bugun.slice(0, 7); ay = ayEkle(ay, 1)) aylar.unshift(ay);
   return aylar;
 }
 
@@ -86,12 +86,10 @@ export function ayarDogrula(g = {}) {
   const manset = typeof g.manset === 'string' ? g.manset.trim().slice(0, 200) : '';
   return { gizli, sira, gizliMadde, manset };
 }
-const AYLIK_FOTO = 12;
 const ACIKLAMA_SINIRI = 400;
 
 /* Ayın fotoğrafları kısa tanıtım videosu (ör. 30 saniyelik reels) ve PDF
    belgesi (ör. toplantı bilgi paketi) da alır. */
-const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 const VIDEO_TURLERI = { 'video/mp4': 'mp4', 'video/webm': 'webm' };
 const BELGE_TURLERI = { 'application/pdf': 'pdf' };
 const MEDYA = { ...PHOTO_TYPES, ...VIDEO_TURLERI, ...BELGE_TURLERI };
@@ -163,11 +161,12 @@ export function bultenRoutes({ db }) {
       if (!aylar.includes(ay)) return send(res, 404, { error: 'bulten.hata.ay' });
       if (!bultenYetkili(user)) return send(res, 403, { error: 'bulten.hata.yetki' });
       const adet = await db.get('SELECT CAST(count(*) AS INTEGER) AS n FROM bulten_foto WHERE ay=?', [ay]);
-      if (Number(adet.n) >= AYLIK_FOTO) throw new ValidationError('bulten.hata.fotoSayi');
-      const veri = await rawBody(req, MAX_VIDEO_BYTES);
+      if (Number(adet.n) >= KURALLAR.bultenAylikFoto) throw new ValidationError('bulten.hata.fotoSayi');
+      const veri = await rawBody(req, Math.max(KURALLAR.bultenVideoMb, KURALLAR.fotoMb) * MB);
       const tur = veri.length ? sniffPhoto(veri) || sniffVideo(veri) || sniffBelge(veri) : null;
       if (!tur || !MEDYA[tur]) throw new ValidationError('bulten.hata.fotoTur');
-      if (PHOTO_TYPES[tur] && veri.length > MAX_PHOTO_BYTES) throw new ValidationError('bulten.hata.fotoTur');
+      if (PHOTO_TYPES[tur] && veri.length > KURALLAR.fotoMb * MB) throw new ValidationError('bulten.hata.fotoTur');
+      if (VIDEO_TURLERI[tur] && veri.length > KURALLAR.bultenVideoMb * MB) throw new ValidationError('bulten.hata.fotoTur');
       const ad = requireText(decodeURIComponent(req.headers['x-dosya-adi'] || ''), 'Dosya adı', { max: 200, required: false })
         || `medya.${MEDYA[tur]}`;
       const aciklama = requireText(decodeURIComponent(req.headers['x-aciklama'] || ''), 'Açıklama', { max: ACIKLAMA_SINIRI, required: false }) || '';
@@ -232,7 +231,7 @@ export function bultenRoutes({ db }) {
         return send(res, 200, { ok: true });
       }
       if (req.method !== 'PUT') return send(res, 405, { error: 'genel.hata' });
-      const veri = await rawBody(req, MAX_PHOTO_BYTES);
+      const veri = await rawBody(req, KURALLAR.fotoMb * MB);
       const tur = veri.length ? sniffPhoto(veri) : null;
       if (!tur || !PHOTO_TYPES[tur]) throw new ValidationError('bulten.hata.fotoTur');
       /* Görsel yüklenince galeriden seçilen görsel bırakılır. */
@@ -379,7 +378,7 @@ export function bultenRoutes({ db }) {
 
     return send(res, 200, {
       klasorDosyaSayi,
-      ay, aylar, bas, son, gecmis, sonrakiAy, duzenleyebilir: !!bultenYetkili(user), uye: !!user, fotolar, maxFoto: AYLIK_FOTO,
+      ay, aylar, bas, son, gecmis, sonrakiAy, duzenleyebilir: !!bultenYetkili(user), uye: !!user, fotolar, maxFoto: KURALLAR.bultenAylikFoto,
       ayar, yazilar,
       not: { yapilanlar: not?.yapilanlar || '', yapilacaklar: not?.yapilacaklar || '',
         updated: not?.updated || null, yazan: not && user ? (not.ad || not.username || '') : '' },

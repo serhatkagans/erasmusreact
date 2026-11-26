@@ -16,7 +16,7 @@ import '../styles/yonetim.css';
  * bant ve menü sayfa açılışında yüklendiği için künye ve metin değişikliği
  * orada sayfa yenilenince görünür.
  */
-const SEKMELER = ['kunye', 'kurumlar', 'metinler', 'gorseller', 'gorunum', 'menu'];
+const SEKMELER = ['kunye', 'kurumlar', 'metinler', 'gorseller', 'gorunum', 'menu', 'kurallar'];
 
 export default function Yonetim() {
   useBaslik('yonetim.baslik');
@@ -47,6 +47,7 @@ export default function Yonetim() {
             {sekme === 'gorseller' && <Gorseller />}
             {sekme === 'gorunum' && <Gorunum />}
             {sekme === 'menu' && <MenuSekmesi />}
+            {sekme === 'kurallar' && <Kurallar />}
           </>
         )}
       </div>
@@ -542,6 +543,101 @@ function MenuForm({ veri, yenile }) {
         {!varsayilanda && (
           <button type="button" className="dugme dugme-hayalet" disabled={bekliyor} onClick={async () => {
             if (await onayla(t('yonetim.sifirlaOnay'), { evet: t('yonetim.sifirla'), tehlike: true })) kaydet({});
+          }}>{t('yonetim.sifirla')}</button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/* --- Kurallar ----------------------------------------------------------------
+   Sınırlar ve bülten yetkisi (lib/site.mjs · kurallarDogrula). Kaydedilince
+   sunucuda hemen geçerli olur; formlardaki ön denetimler sayfa yenilenince. */
+const KURAL_GRUPLARI = [
+  ['guvenlik', ['minParola']],
+  ['dosya', ['fotoMb', 'formDosyaMb', 'klasorMb', 'driveMb', 'bultenVideoMb']],
+  ['sayi', ['etkinlikFoto', 'bultenAylikFoto']],
+];
+
+function Kurallar() {
+  const { veri, yenile } = useVeri('api/yonetim/kurallar');
+  if (!veri) return <p className="bos-durum">{t('genel.yukleniyor')}</p>;
+  return <KurallarForm key={JSON.stringify(veri.kurallar)} veri={veri} yenile={yenile} />;
+}
+
+function KurallarForm({ veri, yenile }) {
+  const [kurumlar, setKurumlar] = useState(veri.kurallar.bultenKurumlari);
+  const [hata, setHata] = useState('');
+  const [bekliyor, setBekliyor] = useState(false);
+  const vars = veri.varsayilan;
+
+  const kaydet = async govde => {
+    setHata('');
+    setBekliyor(true);
+    try {
+      await iste('api/yonetim/kurallar', { method: 'PUT', body: JSON.stringify(govde) });
+      yenile();
+      bildir(t('genel.kaydedildi'));
+    } catch (err) { setHata(err.message); } finally { setBekliyor(false); }
+  };
+
+  return (
+    <form className="yonetim-kart" onSubmit={o => {
+      o.preventDefault();
+      const f = o.currentTarget;
+      const govde = { bultenIlkAy: f.bultenIlkAy.value, bultenKurumlari: kurumlar };
+      for (const [, adlar] of KURAL_GRUPLARI) for (const ad of adlar) govde[ad] = Number(f[ad].value);
+      kaydet(govde);
+    }}>
+      <h2>{t('yonetim.sekme.kurallar')}</h2>
+      <p className="alan-ipucu yonetim-not">{t('yonetim.kural.ipucu')}</p>
+
+      {KURAL_GRUPLARI.map(([grup, adlar]) => (
+        <fieldset key={grup} className="yonetim-tema-grup">
+          <legend>{t(`yonetim.kural.grup.${grup}`)}</legend>
+          <div className="form-izgara">
+            {adlar.map(ad => {
+              const [min, max] = veri.sinirlar[ad];
+              return (
+                <label key={ad} className="alan"><span>{t(`yonetim.kural.${ad}`)}</span>
+                  <input name={ad} type="number" required min={min} max={max} step={1} defaultValue={veri.kurallar[ad]} />
+                  <small className="alan-ipucu">{t('yonetim.kural.aralik', { min, max })}</small>
+                  <Varsayilan deger={vars[ad]} simdi={veri.kurallar[ad]} />
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      ))}
+
+      <fieldset className="yonetim-tema-grup">
+        <legend>{t('yonetim.kural.grup.bulten')}</legend>
+        <div className="form-izgara">
+          <label className="alan"><span>{t('yonetim.kural.bultenIlkAy')}</span>
+            <input name="bultenIlkAy" type="month" required pattern="\d{4}-\d{2}" defaultValue={veri.kurallar.bultenIlkAy} />
+            <Varsayilan deger={vars.bultenIlkAy} simdi={veri.kurallar.bultenIlkAy} />
+          </label>
+        </div>
+        <p className="alan-etiket yonetim-kural-baslik">{t('yonetim.kural.bultenKurumlari')}</p>
+        <p className="alan-ipucu">{t('yonetim.kural.bultenKurumlariIpucu')}</p>
+        <div className="yonetim-kural-kurumlar">
+          {veri.kurumlar.map(k => (
+            <label key={k.id} className="onay">
+              <input type="checkbox" checked={kurumlar.includes(k.id)}
+                onChange={e => setKurumlar(e.target.checked ? [...kurumlar, k.id] : kurumlar.filter(x => x !== k.id))} />
+              <span><strong>{k.short}</strong> · {k.name}</span>
+            </label>
+          ))}
+        </div>
+        <Varsayilan deger={vars.bultenKurumlari.join(', ')} simdi={veri.kurumlar.map(k => k.id).filter(id => kurumlar.includes(id)).join(', ')} />
+      </fieldset>
+
+      <p className="hata" role="alert">{hata}</p>
+      <div className="yonetim-eylem">
+        <button type="submit" className="dugme dugme-birincil" disabled={bekliyor}>{t('genel.kaydet')}</button>
+        {veri.degisen.length > 0 && (
+          <button type="button" className="dugme dugme-hayalet" disabled={bekliyor} onClick={async () => {
+            if (await onayla(t('yonetim.sifirlaOnay'), { evet: t('yonetim.sifirla'), tehlike: true })) kaydet({ ...vars });
           }}>{t('yonetim.sifirla')}</button>
         )}
       </div>

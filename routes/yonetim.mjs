@@ -1,10 +1,11 @@
-import { ValidationError, PROJECT, partners, langCodes, DEFAULT_LANG } from '../lib/data.mjs';
+import { ValidationError, PROJECT, partners, langCodes, DEFAULT_LANG, KURALLAR } from '../lib/data.mjs';
 import { send, body, rawBody } from '../lib/http.mjs';
 import { loadLocale } from '../lib/i18n.mjs';
 import {
   siteYukle, projeDogrula, ortakDogrula, varsayilanProje, varsayilanOrtak,
   gorselAdlari, gorselTuru, ozelGorsel, MAX_GORSEL,
   TEMA_RENKLERI, TEMA_YAZILARI, temaDogrula, temaBilgisi, menuDogrula, menuAyari,
+  kurallarDogrula, varsayilanKurallar, KURAL_SINIRLARI,
 } from '../lib/site.mjs';
 
 /**
@@ -20,6 +21,7 @@ import {
  *   GET    /api/yonetim/gorseller       değiştirilebilen görseller
  *   PUT    /api/yonetim/gorsel/<ad>     ham gövde: yeni dosya
  *   DELETE /api/yonetim/gorsel/<ad>     varsayılana dön
+ *   GET|PUT /api/yonetim/kurallar       sınırlar ve bülten yetkisi (boş gövde: varsayılan)
  *   GET|PUT /api/yonetim/menu           menü sırası ve gizlenenler (boş gövde: varsayılan)
  *   GET|PUT /api/yonetim/tema           renkler ve yazı tipi (boş gövde: varsayılan)
  *
@@ -105,6 +107,19 @@ export function yonetimRoutes({ db }) {
         await siteYukle(db);
         return send(res, 200, { ok: true });
       }
+    }
+
+    if (yol === '/api/yonetim/kurallar') {
+      if (req.method === 'PUT') await ayarYaz('kurallar', kurallarDogrula(await body(req)));
+      else if (req.method !== 'GET') return send(res, 405, { error: 'genel.hata' });
+      const varsayilan = varsayilanKurallar();
+      return send(res, 200, {
+        kurallar: { ...KURALLAR },
+        varsayilan,
+        sinirlar: KURAL_SINIRLARI,
+        degisen: Object.keys(KURALLAR).filter(a => JSON.stringify(KURALLAR[a]) !== JSON.stringify(varsayilan[a])),
+        kurumlar: partners.map(p => ({ id: p.id, short: p.short, name: p.name })),
+      });
     }
 
     if (yol === '/api/yonetim/menu') {

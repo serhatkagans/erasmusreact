@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { ValidationError, PROJECT, partners, workPackages, types, statuses, venues, languages, MIN_PASSWORD } from './lib/data.mjs';
+import { ValidationError, PROJECT, partners, workPackages, types, statuses, venues, languages, KURALLAR } from './lib/data.mjs';
 import { openDb } from './lib/db.mjs';
 import { send, digest, sessionToken, sameOrigin, langCookie } from './lib/http.mjs';
 import { dictionary, negotiate, coverage } from './lib/i18n.mjs';
@@ -243,7 +243,8 @@ const server = createServer(async (req, res) => {
         turler: types,
         durumlar: statuses,
         yerler: venues,
-        minParola: MIN_PASSWORD,
+        minParola: KURALLAR.minParola,
+        kurallar: { driveMb: KURALLAR.driveMb, formDosyaMb: KURALLAR.formDosyaMb, fotoMb: KURALLAR.fotoMb, klasorMb: KURALLAR.klasorMb },
         kullanici: user ? { id: user.id, kullanici: user.username, ad: user.ad, partner: user.partner, koordinator: user.koordinator, yonetici: user.yonetici } : null,
       });
     }

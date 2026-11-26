@@ -1,9 +1,10 @@
 import { randomBytes } from 'node:crypto';
+import { KURALLAR, MB } from '../lib/data.mjs';
 import { ValidationError, partners, partnerIds, listOf, sniffPhoto } from '../lib/data.mjs';
 import {
   validateForm, validateAnswers, questionsOf, answersOf, accepting, stateOf, targets, fills,
   answerable, live, protectQuestions, validRenames, renameAnswers, disMi,
-  fileInfo, MAX_FILES, MAX_FILE_BYTES,
+  fileInfo, MAX_FILES,
 } from '../lib/forms.mjs';
 import { send, body, rawBody, XLSX } from '../lib/http.mjs';
 import { dictionary } from '../lib/i18n.mjs';
@@ -400,7 +401,7 @@ export function formRoutes({ db }) {
         [formId, user.id, soru.id]);
       if (Number(n) >= MAX_FILES * 4) throw new ValidationError(t('form.hata.cokYukleme'));
 
-      const veri = await rawBody(req, MAX_FILE_BYTES);
+      const veri = await rawBody(req, KURALLAR.formDosyaMb * MB);
       if (!veri.length) throw new ValidationError(t('form.hata.bosDosya'));
       const id = await db.insert(
         'INSERT INTO form_dosya (form_id,user_id,soru_id,ad,tur,boyut,veri,created) VALUES (?,?,?,?,?,?,?,?)',

@@ -56,3 +56,7 @@
 .yonetim-menu-ad { flex: 1; display: grid; min-width: 0 }
 .yonetim-menu-ad small { font-size: .75rem; color: var(--soluk) }
 .yonetim-menu-liste .onay { font-size: .85rem; white-space: nowrap }
+
+/* Kurallar sekmesi */
+.yonetim-kural-baslik { font-weight: 650; color: var(--murekkep); margin: 14px 0 2px }
+.yonetim-kural-kurumlar { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: 8px 0 }

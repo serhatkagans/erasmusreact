@@ -1,7 +1,8 @@
 import { ValidationError } from '../lib/data.mjs';
+import { KURALLAR, MB } from '../lib/data.mjs';
 import { send, body, rawBody, ekGonder, basliktanOku } from '../lib/http.mjs';
 import { CIKTILAR, ciktiTanimi, ciktiDogrula, dilDogrula, CIKTI_DURUMLARI, CIKTI_DILLERI } from '../lib/cikti.mjs';
-import { dosyaBilgisi, MAX_KLASOR_BYTES } from '../lib/klasor.mjs';
+import { dosyaBilgisi } from '../lib/klasor.mjs';
 
 /**
  * Çıktı kütüphanesi (iç): bkz. lib/cikti.mjs.
@@ -96,7 +97,7 @@ export function ciktiRoutes({ db }) {
     if (parca[1] === 'dosya' && req.method === 'POST') {
       const dil = dilDogrula(url.searchParams.get('dil'));
       const bilgi = dosyaBilgisi(basliktanOku(req, 'x-file-name'));
-      const veri = await rawBody(req, MAX_KLASOR_BYTES);
+      const veri = await rawBody(req, KURALLAR.klasorMb * MB);
       if (!veri.length) throw new ValidationError('klasor.hata.bos');
       const son = await db.get('SELECT MAX(no) AS n FROM output_files WHERE output_id=? AND dil=?', [c.id, dil]);
       const no = Number(son?.n || 0) + 1;

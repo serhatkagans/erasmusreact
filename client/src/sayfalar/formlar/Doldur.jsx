@@ -3,8 +3,11 @@ import { durum, t } from '../../ortak.js';
 import { onayla, bildir } from '../../bilesenler/Kutu.jsx';
 import {
   api, bolumMu, yanitlanabilir, damga, saat, gunEtiketi, boyutMetni, zenginHtml, gorselAdresi,
-  MAX_DOSYA, MAX_DOSYA_MB, DOSYA_KABUL, SIMGE,
+  MAX_DOSYA, DOSYA_KABUL, SIMGE,
 } from './yardim.jsx';
+
+/* Yönetim → Kurallar (açılış verisi); sunucu yine de kendisi denetler. */
+const maxDosyaMb = () => durum.kurallar?.formDosyaMb ?? 10;
 
 /**
  * Doldurma / önizleme ekranı. Form bölümlere göre sayfalara ayrılır; yanıt
@@ -180,7 +183,7 @@ export function DoldurFormu({ f, git, basAyarla, koordinator, taslakOnizleme = f
     const etiket = girdi.closest('.dosya-sec').querySelector('span');
     for (const dosya of secilenler) {
       if (dosyalarRef.current[q.id].length >= MAX_DOSYA) { setHatalar(h => ({ ...h, [q.id]: t('form.hata.cokDosya2', { n: MAX_DOSYA }) })); break; }
-      if (dosya.size > MAX_DOSYA_MB * 1024 * 1024) { setHatalar(h => ({ ...h, [q.id]: t('form.hata.dosyaBuyuk', { ad: dosya.name, mb: MAX_DOSYA_MB }) })); continue; }
+      if (dosya.size > maxDosyaMb() * 1024 * 1024) { setHatalar(h => ({ ...h, [q.id]: t('form.hata.dosyaBuyuk', { ad: dosya.name, mb: maxDosyaMb() }) })); continue; }
       etiket.textContent = t('form.dosya.yukleniyor', { ad: dosya.name });
       try {
         const yanit = await fetch(`api/formlar/${f.id}/dosya?soru=${encodeURIComponent(q.id)}`, {
@@ -334,7 +337,7 @@ function DoldurSorusu({ q, yanit, hata, kapali, dosyalar, formId, gonderebilir, 
                 {SIMGE.dosya}<span>{t('form.dosya.ekle')}</span>
                 <input type="file" multiple accept={DOSYA_KABUL} className="gorsel-gizli" onChange={o => dosyaYukle(q, o.target)} />
               </label>
-              <small className="soluk">{t('form.dosya.ipucu', { n: MAX_DOSYA, mb: MAX_DOSYA_MB })}</small>
+              <small className="soluk">{t('form.dosya.ipucu', { n: MAX_DOSYA, mb: maxDosyaMb() })}</small>
             </>
           )}
       </div>
