@@ -51,7 +51,7 @@ test('iki lehçe aynı tabloları ve sütunları tanımlar', () => {
      'form_yanitlar', 'forms', 'klasor_dosya', 'klasor_kisayol', 'klasor_surum', 'sessions', 'tasks', 'team', 'user_photos', 'users',
      'outputs', 'output_files', 'event_files',
      'drive_items', 'drive_stars', 'drive_members', 'drive_groups', 'drive_versions', 'drive_log', 'bulten_not', 'bulten_foto', 'belge_kayit',
-     'site_ayar', 'site_metin', 'site_gorsel'].sort());
+     'site_ayar', 'site_metin', 'site_gorsel', 'bulten_ayar', 'bulten_yazi'].sort());
 });
 
 test('lehçe farkı yalnızca üç sözcüktedir', () => {

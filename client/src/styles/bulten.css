@@ -239,7 +239,35 @@
   Bütün bölümler değil yalnızca satırlar, kartlar ve başlıklar bölünmez:
   bölümün tamamı bölünmez olunca sayfanın yarısı boş kalıyordu.
 */
+
+/* --- Düzenleme modu ve Haberler (26 Kasım 2026) --------------------------- */
+.bulten-giris-satir.bulten-yan-yok { grid-template-columns: minmax(0, 1fr) }
+.bulten-duzen-ipucu { margin: 10px 0 0 }
+.bulten-duzen-bolum { position: relative; outline: 2px dashed rgba(var(--vurgu-rgb), .35); outline-offset: 6px; border-radius: 4px; margin: 18px 0 }
+.bulten-duzen-arac { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 0; font: 700 .78rem/1.2 var(--yazi); color: var(--vurgu); text-transform: uppercase; letter-spacing: .05em }
+.bulten-duzen-arac > span { margin-right: auto }
+.bulten-duzen-dugme { font: 650 .78rem/1 var(--yazi); text-transform: none; letter-spacing: 0; padding: 5px 9px; border: 1px solid var(--cizgi-koyu); border-radius: 7px; background: var(--kart); color: var(--murekkep); cursor: pointer; margin-left: 6px }
+.bulten-duzen-dugme:hover:not(:disabled) { border-color: var(--vurgu); color: var(--vurgu) }
+.bulten-duzen-dugme:disabled { opacity: .4; cursor: default }
+.bulten-duzen-sil:hover:not(:disabled) { border-color: #b3261e; color: #b3261e }
+.bulten-duzen-gizli { opacity: .45 }
+.bulten-duzen-madde { display: flex; align-items: center; gap: 4px }
+.bulten-duzen-madde > :first-child { flex: 1; min-width: 0 }
+.bulten-duzen-madde.gizli > :first-child { opacity: .4; text-decoration: line-through }
+.bulten-duzen-satir { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 }
+.bulten-duzen-satir .bulten-duzen-dugme { margin-left: 0 }
+.bulten-haberler { display: grid; gap: 22px }
+.bulten-haber { display: grid; gap: 18px; padding-bottom: 22px; border-bottom: 1px solid var(--cizgi) }
+.bulten-haber:last-child { border-bottom: 0; padding-bottom: 0 }
+.bulten-haber.gorselli { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); align-items: start }
+.bulten-haber img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; display: block }
+.bulten-haber h3 { font-family: var(--serif); font-size: 1.35rem; line-height: 1.25; margin: 0 0 8px; color: var(--murekkep) }
+@media (max-width: 640px) { .bulten-haber.gorselli { grid-template-columns: minmax(0, 1fr) } }
+
 @media print {
+  .bulten-duzen-arac, .bulten-duzen-dugme, .bulten-duzen-satir, .bulten-duzen-ipucu { display: none !important }
+  .bulten-duzen-bolum { outline: 0 }
+  .bulten-haber { break-inside: avoid }
   @page bulten { size: A4 portrait; margin: 13mm 14mm 14mm }
   body:has(.bulten) .ust, body:has(.bulten) .atla, body:has(.bulten) .alt, .bulten-arac-bas, .bulten-eylem-dugme, .bulten-foto-eylem,
   .bulten-icindekiler, .bulten-sosyal-ok, .bulten-medya-tur { display: none !important }

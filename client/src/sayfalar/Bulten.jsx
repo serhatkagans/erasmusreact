@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { durum, t, iste, ortakKisa, etkinlikBaslik, tamTarih, tarihAraligi, ayYil, bugun, boyutYaz } from '../ortak.js';
 import { useVeri } from '../kancalar.js';
 import { useKonum } from '../yonlendirme.js';
@@ -127,7 +127,14 @@ function Baglantili({ metin }) {
   });
 }
 
-function Satir({ href, baslik, alt, rozet, rozetSinif = '' }) {
+/* Düzenleme modunda her otomatik maddenin yanında gizle/göster düğmesi
+   durur; gizlenen madde soluk çizilir. Okuyan gizlenen maddeyi görmez. */
+const DuzenBaglam = createContext(null);
+
+function Satir({ href, baslik, alt, rozet, rozetSinif = '', madde }) {
+  const duzen = useContext(DuzenBaglam);
+  const gizli = !!madde && duzen?.gizliMadde.has(madde);
+  if (gizli && !duzen.acik) return null;
   const ic = (
     <>
       <span className="pano-satir-govde">
@@ -139,11 +146,21 @@ function Satir({ href, baslik, alt, rozet, rozetSinif = '' }) {
   );
   /* Ziyaretçi kayıtları açamaz (giriş ister): satır bağlantısız çizilir. */
   if (!durum.kullanici) href = null;
-  return <li>{href ? <a className="pano-satir" href={href}>{ic}</a> : <div className="pano-satir">{ic}</div>}</li>;
+  const satir = href ? <a className="pano-satir" href={href}>{ic}</a> : <div className="pano-satir">{ic}</div>;
+  if (!duzen?.acik || !madde) return <li>{satir}</li>;
+  return (
+    <li className={`bulten-duzen-madde${gizli ? ' gizli' : ''}`}>
+      {satir}
+      <button type="button" className="bulten-duzen-dugme" onClick={() => duzen.maddeDegistir(madde)}
+        title={t(gizli ? 'bulten.duzen.goster' : 'bulten.duzen.gizle')}>{t(gizli ? 'bulten.duzen.goster' : 'bulten.duzen.gizle')}</button>
+    </li>
+  );
 }
 
-/** Başlıklı küme; boşsa hiç çizilmez. */
+/** Başlıklı küme; boşsa (ya da hepsi gizliyse) hiç çizilmez. */
 function Kume({ baslik, satirlar }) {
+  const duzen = useContext(DuzenBaglam);
+  if (!duzen?.acik) satirlar = satirlar.filter(s => !s.madde || !duzen?.gizliMadde.has(s.madde));
   if (!satirlar.length) return null;
   return (
     <div className="bulten-kume">
@@ -163,13 +180,13 @@ function Rakam({ n, metin }) {
 }
 
 const faaliyetSatiri = (e, rozet, rozetSinif) => ({
-  href: `takvim.html#etkinlik-${e.id}`, baslik: etkinlikBaslik(e),
+  madde: `faaliyet:${e.id}`, href: `takvim.html#etkinlik-${e.id}`, baslik: etkinlikBaslik(e),
   alt: `${e.wp}${e.kod ? ' ' + e.kod : ''} · ${tarihAraligi(e.baslangic, e.bitis)} · ${ortakKisa(e.lider)}`,
   rozet, rozetSinif,
 });
 
 const gorevSatiri = (g, rozet, rozetSinif) => ({
-  href: 'ekip.html', baslik: g.baslik,
+  madde: `gorev:${g.id}`, href: 'ekip.html', baslik: g.baslik,
   alt: [ortakKisa(g.partner), g.uye, g.son_tarih && tamTarih(g.son_tarih)].filter(Boolean).join(' · '),
   rozet, rozetSinif,
 });
@@ -185,49 +202,73 @@ export default function Bulten() {
   const istenen = params.get('ay') || '';
   const { veri: b, yenile } = useVeri(`api/bulten${istenen ? `?ay=${istenen}` : ''}`);
   const [duzenle, setDuzenle] = useState(false);
+  /* Düzenleme modu (koordinatör ve yönetici): bölümleri gizler, sıralar,
+     otomatik maddeleri gizler, haber ekler, manşeti değiştirir. */
+  const [duzenModu, setDuzenModu] = useState(false);
+  const [ayar, setAyar] = useState(null);
+  const [mansetAcik, setMansetAcik] = useState(false);
+  useEffect(() => { setAyar(b?.ayar || null); }, [b]);
+
+  const ayarKaydet = async yeni => {
+    const onceki = ayar;
+    setAyar(yeni);
+    try { setAyar(await iste(`api/bulten/${b.ay}/ayar`, { method: 'PUT', body: JSON.stringify(yeni) })); }
+    catch (err) { setAyar(onceki); bildir(err.message, 'hata'); }
+  };
 
   let govde = null;
-  if (b) {
+  if (b && ayar) {
+    const acik = duzenModu && b.duzenleyebilir;
+    const gizliMadde = new Set(ayar.gizliMadde);
+    const gizliBolum = new Set(ayar.gizli);
+    const gorunur = bolum => acik || !gizliBolum.has(bolum);
+    const baglam = {
+      acik, gizliMadde,
+      maddeDegistir: m => ayarKaydet({ ...ayar, gizliMadde: gizliMadde.has(m) ? ayar.gizliMadde.filter(x => x !== m) : [...ayar.gizliMadde, m] }),
+    };
+    /* Okuyan için gizlenen maddeler sayılmaz. */
+    const say = satirlar => (acik ? satirlar : satirlar.filter(s => !s.madde || !gizliMadde.has(s.madde))).length;
+
     const y = b.yapilanlar;
     const z = b.yapilacaklar;
 
     const yapFaaliyet = y.faaliyet.map(e => faaliyetSatiri(e, t('durum.tamamlandi'), 'bulten-rozet-yesil'));
     const yapGorev = y.gorev.map(g => gorevSatiri(g, t('bulten.tamam'), 'bulten-rozet-yesil'));
-    const yapCikti = y.cikti.map(c => ({ href: `ciktilar.html#${c.slug}`, baslik: t(`${c.anahtar}.baslik`),
+    const yapCikti = y.cikti.map(c => ({ madde: `cikti:${c.slug}`, href: `ciktilar.html#${c.slug}`, baslik: t(`${c.anahtar}.baslik`),
       alt: c.sorumlu ? ortakKisa(c.sorumlu) : '', rozet: t('cikti.durum.teslim'), rozetSinif: 'bulten-rozet-yesil' }));
     const yapForm = [
-      ...y.formYayin.map(f => ({ href: `formlar.html#form-${f.id}`, baslik: f.baslik,
+      ...y.formYayin.map(f => ({ madde: `form:${f.id}`, href: `formlar.html#form-${f.id}`, baslik: f.baslik,
         alt: t('bulten.formYayinlandi', { tarih: tamTarih(f.tarih) }) })),
-      ...y.formYanit.map(f => ({ href: `formlar.html#form-${f.id}`, baslik: f.baslik,
+      ...y.formYanit.map(f => ({ madde: `yanit:${f.id}`, href: `formlar.html#form-${f.id}`, baslik: f.baslik,
         alt: t('bulten.yanitGeldi'), rozet: t('bulten.yanitSayi', { n: f.n }) })),
     ];
     const yapDosya = [
-      ...y.faaliyetDosya.map(f => ({ href: `takvim.html#etkinlik-${f.id}`, baslik: etkinlikBaslik(f),
+      ...y.faaliyetDosya.map(f => ({ madde: `fdosya:${f.id}`, href: `takvim.html#etkinlik-${f.id}`, baslik: etkinlikBaslik(f),
         alt: f.turler.map(x => t(`faaliyet.parca.${x}`)).join(', '), rozet: t('bulten.faaliyetDosyasi') })),
-      ...y.dosya.slice(0, 10).map(d => ({ href: `klasorler.html#${d.klasor}`, baslik: d.ad,
+      ...y.dosya.slice(0, 10).map(d => ({ madde: `dosya:${d.id}`, href: `klasorler.html#${d.klasor}`, baslik: d.ad,
         alt: [d.klasor, ortakKisa(d.partner), d.yukleyen, tamTarih(d.tarih)].filter(Boolean).join(' · ') })),
     ];
-    if (!b.uye && b.klasorDosyaSayi) yapDosya.push({ baslik: t('bulten.klasorDosya', { n: b.klasorDosyaSayi }) });
-    if (y.dosya.length > 10) yapDosya.push({ href: 'klasorler.html', baslik: t('bulten.dahaFazla', { n: y.dosya.length - 10 }) });
-    if (y.fotograf) yapDosya.push({ href: 'takvim.html', baslik: t('bulten.fotograf', { n: y.fotograf }) });
-    if (y.ciktiDosya) yapDosya.push({ href: 'ciktilar.html', baslik: t('bulten.ciktiDosya', { n: y.ciktiDosya }) });
+    if (!b.uye && b.klasorDosyaSayi) yapDosya.push({ madde: 'ozet:klasor', baslik: t('bulten.klasorDosya', { n: b.klasorDosyaSayi }) });
+    if (y.dosya.length > 10) yapDosya.push({ madde: 'ozet:fazla', href: 'klasorler.html', baslik: t('bulten.dahaFazla', { n: y.dosya.length - 10 }) });
+    if (y.fotograf) yapDosya.push({ madde: 'ozet:fotograf', href: 'takvim.html', baslik: t('bulten.fotograf', { n: y.fotograf }) });
+    if (y.ciktiDosya) yapDosya.push({ madde: 'ozet:ciktidosya', href: 'ciktilar.html', baslik: t('bulten.ciktiDosya', { n: y.ciktiDosya }) });
 
     const zFaaliyet = z.faaliyet.map(e => faaliyetSatiri(e, ...acikRozet(e, e.baslangic <= bugun() && e.durum !== 'ertelendi'
       ? t('durum.devam') : t(`durum.${e.durum}`))));
     const zGorev = z.gorev.map(g => gorevSatiri(g, ...acikRozet(g, `%${g.ilerleme}`)));
     const zCikti = z.cikti.map(c => {
       const [rozet, rozetSinif] = acikRozet(c, t(`cikti.durum.${c.durum}`));
-      return { href: `ciktilar.html#${c.slug}`, baslik: t(`${c.anahtar}.baslik`),
+      return { madde: `cikti:${c.slug}`, href: `ciktilar.html#${c.slug}`, baslik: t(`${c.anahtar}.baslik`),
         alt: [c.sorumlu && ortakKisa(c.sorumlu), tamTarih(c.teslim)].filter(Boolean).join(' · '), rozet, rozetSinif };
     });
-    const zForm = z.form.map(f => ({ href: `formlar.html#form-${f.id}`, baslik: f.baslik,
+    const zForm = z.form.map(f => ({ madde: `form:${f.id}`, href: `formlar.html#form-${f.id}`, baslik: f.baslik,
       alt: t('bulten.formSonGun', { tarih: tamTarih(f.sonTarih) }), rozet: t('bulten.yanitSayi', { n: f.yanit }) }));
 
     const sFaaliyet = b.sonraki.faaliyet.map(e => faaliyetSatiri(e, t(`durum.${e.durum}`)));
     const sGorev = b.sonraki.gorev.map(g => gorevSatiri(g, `%${g.ilerleme}`));
 
-    const yapilanSayi = yapFaaliyet.length + yapGorev.length + yapCikti.length + yapForm.length + yapDosya.length;
-    const yapilacakSayi = zFaaliyet.length + zGorev.length + zCikti.length + zForm.length;
+    const yapilanSayi = say(yapFaaliyet) + say(yapGorev) + say(yapCikti) + say(yapForm) + say(yapDosya);
+    const yapilacakSayi = say(zFaaliyet) + say(zGorev) + say(zCikti) + say(zForm);
     const dosyaSayi = b.klasorDosyaSayi + y.faaliyetDosya.length + y.fotograf + y.ciktiDosya;
     const yanitSayi = y.formYanit.reduce((n, f) => n + f.n, 0);
 
@@ -237,104 +278,167 @@ export default function Bulten() {
     const son = durum.proje?.end?.slice(0, 7);
     const projeAy = bas ? ayFark(bas, b.ay) + 1 : 1;
     const toplamAy = bas && son ? ayFark(bas, son) + 1 : 0;
-    const medyaVar = b.fotolar.length > 0 || b.duzenleyebilir;
+    const medyaVar = (b.fotolar.length > 0 || b.duzenleyebilir) && gorunur('medya');
+    const yazilarVar = (b.yazilar.length > 0 || acik) && gorunur('yazilar');
+    const izgaraVar = gorunur('yapilan') || gorunur('yapilacak');
+
+    /* Sırası değişebilen bölümler: haberler, medya, yapılanlar/yapılacaklar, gelecek ay. */
+    const BOLUM = {
+      yazilar: yazilarVar && { icerik: ['bulten-yazilar', 'bulten.yazilar'], ciz: () => <Haberler b={b} acik={acik} yenile={yenile} /> },
+      medya: medyaVar && { icerik: ['bulten-foto-bas', 'bulten.fotolar'], ciz: () => <Fotolar b={b} yenile={yenile} /> },
+      izgara: izgaraVar && {
+        icerik: [gorunur('yapilan') && ['bulten-yapilan', 'bulten.yapilanlar'],
+          gorunur('yapilacak') && ['bulten-yapilacak', b.gecmis ? 'bulten.kalanlar' : 'bulten.yapilacaklar']],
+        ciz: () => (
+          <div className="bulten-izgara">
+            {gorunur('yapilan') && (
+              <Bolum id="bulten-yapilan" sinif="bulten-yapilan" ust={t('bulten.buAy')} baslik={t('bulten.yapilanlar')}
+                sag={acik && <BolumGizle ad="yapilan" ayar={ayar} kaydet={ayarKaydet} />}>
+                <Kume baslik="bulten.k.faaliyet" satirlar={yapFaaliyet} />
+                <Kume baslik="bulten.k.gorev" satirlar={yapGorev} />
+                <Kume baslik="bulten.k.cikti" satirlar={yapCikti} />
+                <Kume baslik="bulten.k.form" satirlar={yapForm} />
+                <Kume baslik="bulten.k.dosya" satirlar={yapDosya} />
+                {!yapilanSayi && <p className="pano-bos">{t('bulten.yapilanlar.bos')}</p>}
+              </Bolum>
+            )}
+            {gorunur('yapilacak') && (
+              <Bolum id="bulten-yapilacak" sinif="bulten-yapilacak" ust={t('bulten.gundem')}
+                baslik={t(b.gecmis ? 'bulten.kalanlar' : 'bulten.yapilacaklar')}
+                sag={acik && <BolumGizle ad="yapilacak" ayar={ayar} kaydet={ayarKaydet} />}>
+                {b.not.yapilacaklar && (
+                  <div className="bulten-not"><span className="bulten-not-bas">{t('bulten.hedefler')}</span><NotMetni metin={b.not.yapilacaklar} /></div>
+                )}
+                <Kume baslik="bulten.k.faaliyet" satirlar={zFaaliyet} />
+                <Kume baslik="bulten.k.gorev" satirlar={zGorev} />
+                <Kume baslik="bulten.k.cikti" satirlar={zCikti} />
+                <Kume baslik="bulten.k.form" satirlar={zForm} />
+                {!yapilacakSayi && !b.not.yapilacaklar && <p className="pano-bos">{t(b.gecmis ? 'bulten.kalanlar.bos' : 'bulten.yapilacaklar.bos')}</p>}
+              </Bolum>
+            )}
+          </div>
+        ),
+      },
+      sonraki: gorunur('sonraki') && {
+        icerik: [['bulten-sonraki', 'bulten.sonraki', { ay: ayAdi(b.sonrakiAy) }]],
+        ciz: () => (
+          <Bolum id="bulten-sonraki" sinif="bulten-sonraki" ust={t('bulten.gelecekSayi')} baslik={t('bulten.sonraki', { ay: ayAdi(b.sonrakiAy) })}
+            sag={acik && <BolumGizle ad="sonraki" ayar={ayar} kaydet={ayarKaydet} />}>
+            <div className="bulten-sonraki-izgara">
+              <Kume baslik="bulten.k.faaliyet" satirlar={sFaaliyet} />
+              <Kume baslik="bulten.k.gorev" satirlar={sGorev} />
+            </div>
+            {!say(sFaaliyet) && !say(sGorev) && <p className="pano-bos">{t('bulten.sonraki.bos')}</p>}
+          </Bolum>
+        ),
+      },
+    };
+    const sirali = ayar.sira.filter(ad => BOLUM[ad]);
     const icerik = [
       b.not.yapilanlar && ['bulten-manset', 'bulten.oneCikanlar'],
-      medyaVar && ['bulten-foto-bas', 'bulten.fotolar'],
-      ['bulten-yapilan', 'bulten.yapilanlar'],
-      ['bulten-yapilacak', b.gecmis ? 'bulten.kalanlar' : 'bulten.yapilacaklar'],
-      ['bulten-sonraki', 'bulten.sonraki', { ay: ayAdi(b.sonrakiAy) }],
+      ...sirali.flatMap(ad => (ad === 'izgara' ? BOLUM.izgara.icerik.filter(Boolean) : [BOLUM[ad].icerik])),
     ].filter(Boolean);
+    const tasi = (ad, yon) => {
+      const s = [...ayar.sira];
+      const i = s.indexOf(ad);
+      /* Görünmeyen (boş) bölümlerin üstünden atlanır. */
+      let j = i + yon;
+      while (j >= 0 && j < s.length && !BOLUM[s[j]]) j += yon;
+      if (j < 0 || j >= s.length) return;
+      [s[i], s[j]] = [s[j], s[i]];
+      ayarKaydet({ ...ayar, sira: s });
+    };
 
     govde = (
-      <article className="bulten-kagit">
-        <header className="bulten-kunye">
-          <div className="bulten-kunye-ust">
-            <span>Erasmus+ · KA220-YOU</span>
-            <span>{t('bulten.ust')}</span>
-          </div>
-          <h1 className="bulten-ad">
-            <img src="logo.png" alt="" />
-            <span>{durum.proje?.acronym || t('site.ad')}</span>
-          </h1>
-          <p className="bulten-alt-ad">{t('bulten.altAd')}</p>
-          <div className="bulten-tarih-serit">
-            <span>{t('bulten.sayi', { n: sayiNo })}</span>
-            <strong>{ayAdi(b.ay)}</strong>
-            <span>{projeAy >= 1 && toplamAy ? t('bulten.projeAyi', { n: projeAy, toplam: toplamAy }) : t('bulten.hazirlikSayisi')}</span>
-          </div>
-        </header>
-
-        <div className="bulten-giris-satir">
-          <div className="bulten-manset" id="bulten-manset-bolum">
-            <span className="bulten-ust">{t(b.not.yapilanlar ? 'bulten.oneCikanlar' : 'bulten.editorden')}</span>
-            <h2 id="bulten-manset">{t('bulten.mansetBaslik', { ay: ayAdi(b.ay) })}</h2>
-            {b.not.yapilanlar && <div className="bulten-yazi"><NotMetni metin={b.not.yapilanlar} /></div>}
-          </div>
-
-          <aside className="bulten-yan" aria-labelledby="bulten-rakam-bas">
-            <span className="bulten-ust" id="bulten-rakam-bas">{t('bulten.rakamlarla')}</span>
-            <div className="bulten-rakamlar">
-              <Rakam n={y.faaliyet.length + y.gorev.length + y.cikti.length} metin="bulten.r.tamamlanan" />
-              <Rakam n={dosyaSayi} metin="bulten.r.dosya" />
-              <Rakam n={yanitSayi} metin="bulten.r.yanit" />
-              <Rakam n={yapilacakSayi} metin={b.gecmis ? 'bulten.r.kalan' : 'bulten.r.yapilacak'} />
+      <DuzenBaglam.Provider value={baglam}>
+        <article className={`bulten-kagit${acik ? ' bulten-duzende' : ''}`}>
+          <header className="bulten-kunye">
+            <div className="bulten-kunye-ust">
+              <span>{t('bulten.kunyeUst')}</span>
+              <span>{t('bulten.ust')}</span>
             </div>
-            <nav className="bulten-icindekiler" aria-labelledby="bulten-icindekiler-bas">
-              <span className="bulten-ust" id="bulten-icindekiler-bas">{t('bulten.icindekiler')}</span>
-              <ol>
-                {icerik.map(([id, anahtar, d]) => <li key={id}><a href={`#${id}-bolum`}>{t(anahtar, d)}</a></li>)}
-              </ol>
-            </nav>
-          </aside>
-        </div>
+            <h1 className="bulten-ad">
+              <img src="logo.png" alt="" />
+              <span>{durum.proje?.acronym || t('site.ad')}</span>
+            </h1>
+            <p className="bulten-alt-ad">{t('bulten.altAd')}</p>
+            <div className="bulten-tarih-serit">
+              <span>{t('bulten.sayi', { n: sayiNo })}</span>
+              <strong>{ayAdi(b.ay)}</strong>
+              <span>{projeAy >= 1 && toplamAy ? t('bulten.projeAyi', { n: projeAy, toplam: toplamAy }) : t('bulten.hazirlikSayisi')}</span>
+            </div>
+          </header>
 
-        {medyaVar && <Fotolar b={b} yenile={yenile} />}
+          <div className={`bulten-giris-satir${!gorunur('rakamlar') && !gorunur('icindekiler') ? ' bulten-yan-yok' : ''}`}>
+            <div className="bulten-manset" id="bulten-manset-bolum">
+              <span className="bulten-ust">{t(b.not.yapilanlar ? 'bulten.oneCikanlar' : 'bulten.editorden')}</span>
+              <h2 id="bulten-manset">{ayar.manset || t('bulten.mansetBaslik', { ay: ayAdi(b.ay) })}</h2>
+              {acik && (
+                <span className="bulten-duzen-satir">
+                  <button type="button" className="dugme dugme-ikincil dugme-kucuk" onClick={() => setMansetAcik(true)}>{t('bulten.duzen.manset')}</button>
+                  <button type="button" className="dugme dugme-ikincil dugme-kucuk" onClick={() => setDuzenle(true)}>{t('bulten.notDuzenle')}</button>
+                </span>
+              )}
+              {b.not.yapilanlar && <div className="bulten-yazi"><NotMetni metin={b.not.yapilanlar} /></div>}
+            </div>
 
-        <div className="bulten-izgara">
-          <Bolum id="bulten-yapilan" sinif="bulten-yapilan" ust={t('bulten.buAy')} baslik={t('bulten.yapilanlar')}>
-            <Kume baslik="bulten.k.faaliyet" satirlar={yapFaaliyet} />
-            <Kume baslik="bulten.k.gorev" satirlar={yapGorev} />
-            <Kume baslik="bulten.k.cikti" satirlar={yapCikti} />
-            <Kume baslik="bulten.k.form" satirlar={yapForm} />
-            <Kume baslik="bulten.k.dosya" satirlar={yapDosya} />
-            {!yapilanSayi && <p className="pano-bos">{t('bulten.yapilanlar.bos')}</p>}
-          </Bolum>
-
-          <Bolum id="bulten-yapilacak" sinif="bulten-yapilacak" ust={t('bulten.gundem')}
-            baslik={t(b.gecmis ? 'bulten.kalanlar' : 'bulten.yapilacaklar')}>
-            {b.not.yapilacaklar && (
-              <div className="bulten-not"><span className="bulten-not-bas">{t('bulten.hedefler')}</span><NotMetni metin={b.not.yapilacaklar} /></div>
+            {(gorunur('rakamlar') || gorunur('icindekiler')) && (
+              <aside className="bulten-yan" aria-labelledby="bulten-rakam-bas">
+                {gorunur('rakamlar') && (
+                  <div className={acik && gizliBolum.has('rakamlar') ? 'bulten-duzen-gizli' : undefined}>
+                    <span className="bulten-ust" id="bulten-rakam-bas">{t('bulten.rakamlarla')}
+                      {acik && <BolumGizle ad="rakamlar" ayar={ayar} kaydet={ayarKaydet} />}</span>
+                    <div className="bulten-rakamlar">
+                      <Rakam n={y.faaliyet.length + y.gorev.length + y.cikti.length} metin="bulten.r.tamamlanan" />
+                      <Rakam n={dosyaSayi} metin="bulten.r.dosya" />
+                      <Rakam n={yanitSayi} metin="bulten.r.yanit" />
+                      <Rakam n={yapilacakSayi} metin={b.gecmis ? 'bulten.r.kalan' : 'bulten.r.yapilacak'} />
+                    </div>
+                  </div>
+                )}
+                {gorunur('icindekiler') && (
+                  <nav className={`bulten-icindekiler${acik && gizliBolum.has('icindekiler') ? ' bulten-duzen-gizli' : ''}`} aria-labelledby="bulten-icindekiler-bas">
+                    <span className="bulten-ust" id="bulten-icindekiler-bas">{t('bulten.icindekiler')}
+                      {acik && <BolumGizle ad="icindekiler" ayar={ayar} kaydet={ayarKaydet} />}</span>
+                    <ol>
+                      {icerik.map(([id, anahtar, d]) => <li key={id}><a href={`#${id}-bolum`}>{t(anahtar, d)}</a></li>)}
+                    </ol>
+                  </nav>
+                )}
+              </aside>
             )}
-            <Kume baslik="bulten.k.faaliyet" satirlar={zFaaliyet} />
-            <Kume baslik="bulten.k.gorev" satirlar={zGorev} />
-            <Kume baslik="bulten.k.cikti" satirlar={zCikti} />
-            <Kume baslik="bulten.k.form" satirlar={zForm} />
-            {!yapilacakSayi && !b.not.yapilacaklar && <p className="pano-bos">{t(b.gecmis ? 'bulten.kalanlar.bos' : 'bulten.yapilacaklar.bos')}</p>}
-          </Bolum>
-        </div>
-
-        <Bolum id="bulten-sonraki" sinif="bulten-sonraki" ust={t('bulten.gelecekSayi')} baslik={t('bulten.sonraki', { ay: ayAdi(b.sonrakiAy) })}>
-          <div className="bulten-sonraki-izgara">
-            <Kume baslik="bulten.k.faaliyet" satirlar={sFaaliyet} />
-            <Kume baslik="bulten.k.gorev" satirlar={sGorev} />
           </div>
-          {!sFaaliyet.length && !sGorev.length && <p className="pano-bos">{t('bulten.sonraki.bos')}</p>}
-        </Bolum>
 
-        <footer className="bulten-kolofon">
-          {b.not.updated && b.not.yazan && (
-            <p className="bulten-imza">{t('bulten.notYazan', { ad: b.not.yazan, tarih: tamTarih(b.not.updated.slice(0, 10)) })}</p>
-          )}
-          <div className="bulten-kolofon-ab">
-            <img src="ab-ortak-finanse.svg" alt={t('ab.logo.ortak')} width="163" height="31" />
-            <p>{t('altbilgi.feragat')}</p>
-          </div>
-          <p className="bulten-kolofon-son">
-            {[durum.proje?.acronym || t('site.ad'), t('bulten.sayi', { n: sayiNo }), ayAdi(b.ay)].join(' · ')}
-          </p>
-        </footer>
-      </article>
+          {sirali.map((ad, i) => (
+            <div key={ad} className={acik ? `bulten-duzen-bolum${['yazilar', 'medya'].includes(ad) && gizliBolum.has(ad) ? ' bulten-duzen-gizli' : ''}` : undefined}>
+              {acik && (
+                <div className="bulten-duzen-arac">
+                  <span>{t(`bulten.duzen.bolum.${ad}`)}</span>
+                  <button type="button" className="bulten-duzen-dugme" disabled={i === 0} onClick={() => tasi(ad, -1)}
+                    aria-label={t('bulten.duzen.yukari')} title={t('bulten.duzen.yukari')}>↑</button>
+                  <button type="button" className="bulten-duzen-dugme" disabled={i === sirali.length - 1} onClick={() => tasi(ad, 1)}
+                    aria-label={t('bulten.duzen.asagi')} title={t('bulten.duzen.asagi')}>↓</button>
+                  {['yazilar', 'medya'].includes(ad) && <BolumGizle ad={ad} ayar={ayar} kaydet={ayarKaydet} />}
+                </div>
+              )}
+              {BOLUM[ad].ciz()}
+            </div>
+          ))}
+
+          <footer className="bulten-kolofon">
+            {b.not.updated && b.not.yazan && (
+              <p className="bulten-imza">{t('bulten.notYazan', { ad: b.not.yazan, tarih: tamTarih(b.not.updated.slice(0, 10)) })}</p>
+            )}
+            <div className="bulten-kolofon-ab">
+              <img src="ab-ortak-finanse.svg" alt={t('ab.logo.ortak')} width="163" height="31" />
+              <p>{t('altbilgi.feragat')}</p>
+            </div>
+            <p className="bulten-kolofon-son">
+              {[durum.proje?.acronym || t('site.ad'), t('bulten.sayi', { n: sayiNo }), ayAdi(b.ay)].join(' · ')}
+            </p>
+          </footer>
+        </article>
+      </DuzenBaglam.Provider>
     );
   }
 
@@ -350,16 +454,149 @@ export default function Bulten() {
             </nav>
             <div className="bulten-eylem">
               {b.duzenleyebilir && (
+                <button type="button" className={`dugme ${duzenModu ? 'dugme-birincil' : 'dugme-ikincil'}`} aria-pressed={duzenModu}
+                  onClick={() => setDuzenModu(d => !d)}>{t(duzenModu ? 'bulten.duzen.bitir' : 'bulten.duzen.ac')}</button>
+              )}
+              {b.duzenleyebilir && !duzenModu && (
                 <button type="button" className="dugme dugme-ikincil" onClick={() => setDuzenle(true)}>{t('bulten.notDuzenle')}</button>
               )}
               <button type="button" className="dugme dugme-ikincil" onClick={() => print()}>{t('bulten.yazdir')}</button>
             </div>
           </div>
         ) : <h1 className="bulten-yukleniyor">{t('bulten.baslik')}</h1>}
+        {b?.duzenleyebilir && duzenModu && <p className="alan-ipucu bulten-duzen-ipucu">{t('bulten.duzen.ipucu')}</p>}
       </section>
       <div className="kapsayici bulten">{govde}</div>
       {b?.duzenleyebilir && <NotKutusu acik={duzenle} b={b} kapat={() => setDuzenle(false)} yenile={yenile} />}
+      {b?.duzenleyebilir && ayar && (
+        <MansetKutusu acik={mansetAcik} ay={b.ay} deger={ayar.manset} kapat={() => setMansetAcik(false)}
+          kaydet={async manset => { await ayarKaydet({ ...ayar, manset }); setMansetAcik(false); }} />
+      )}
     </main>
+  );
+}
+
+/** Bölümü gizle / göster düğmesi (düzenleme modunda). */
+function BolumGizle({ ad, ayar, kaydet }) {
+  const gizli = ayar.gizli.includes(ad);
+  return (
+    <button type="button" className="bulten-duzen-dugme"
+      onClick={() => kaydet({ ...ayar, gizli: gizli ? ayar.gizli.filter(x => x !== ad) : [...ayar.gizli, ad] })}>
+      {t(gizli ? 'bulten.duzen.goster' : 'bulten.duzen.gizle')}
+    </button>
+  );
+}
+
+function MansetKutusu({ acik, ay, deger, kapat, kaydet }) {
+  return (
+    <Kutu acik={acik} onKapat={kapat} koru id="bulten-manset-kutu">
+      {acik && (
+        <form className="kutu-ic" onSubmit={o => { o.preventDefault(); kaydet(o.currentTarget.manset.value); }}>
+          <div className="kutu-ust">
+            <h2>{t('bulten.duzen.manset')}</h2>
+            <button type="button" className="kapat" data-kapat aria-label={t('genel.kapat')}>×</button>
+          </div>
+          <label className="alan"><span>{t('bulten.duzen.mansetAlan')}</span>
+            <input name="manset" maxLength={200} defaultValue={deger} placeholder={t('bulten.mansetBaslik', { ay: ayAdi(ay) })} /></label>
+          <p className="alan-ipucu">{t('bulten.duzen.mansetIpucu')}</p>
+          <div className="kutu-eylem">
+            <button type="submit" className="dugme dugme-birincil">{t('genel.kaydet')}</button>
+            <button type="button" className="dugme dugme-ikincil" data-kapat>{t('genel.vazgec')}</button>
+          </div>
+        </form>
+      )}
+    </Kutu>
+  );
+}
+
+/**
+ * Haberler: koordinatörün yazdığı serbest yazılar (başlık, metin, isteğe
+ * bağlı görsel). Görsel ayın medyasından seçilir. Metin ay notuyla aynı
+ * kurallarla çizilir: "-" maddeler, bağlantılar, sosyal hesap kartları.
+ */
+function Haberler({ b, acik, yenile }) {
+  const [duzenlenen, setDuzenlenen] = useState(null);
+  const gorseller = b.fotolar.filter(f => f.tur.startsWith('image/'));
+  const yap = async (istek, mesaj = 'genel.kaydedildi') => {
+    try { await istek(); bildir(t(mesaj)); yenile(); } catch (err) { bildir(err.message, 'hata'); }
+  };
+  return (
+    <section className="bulten-bolum bulten-yazilar" aria-labelledby="bulten-yazilar" id="bulten-yazilar-bolum">
+      <header className="bulten-bolum-bas">
+        <div>
+          <span className="bulten-ust">{t('bulten.yazilarUst')}</span>
+          <h2 id="bulten-yazilar">{t('bulten.yazilar')}</h2>
+        </div>
+        {acik && <button type="button" className="dugme dugme-ikincil dugme-kucuk" onClick={() => setDuzenlenen({})}>{t('bulten.yazi.ekle')}</button>}
+      </header>
+      {!b.yazilar.length && <p className="pano-bos">{t('bulten.yazilar.bos')}</p>}
+      <div className="bulten-haberler">
+        {b.yazilar.map((h, i) => {
+          const foto = h.fotoId && b.fotolar.find(f => f.id === h.fotoId);
+          return (
+            <article key={h.id} className={`bulten-haber${foto ? ' gorselli' : ''}`}>
+              {foto && <img src={`api/bulten/foto/${foto.id}?v=${foto.boyut}`} alt="" loading="lazy" />}
+              <div className="bulten-haber-govde">
+                <h3>{h.baslik}</h3>
+                {h.metin && <div className="bulten-yazi"><NotMetni metin={h.metin} /></div>}
+                {acik && (
+                  <span className="bulten-duzen-satir">
+                    <button type="button" className="bulten-duzen-dugme" onClick={() => setDuzenlenen(h)}>{t('bulten.yazi.duzenle')}</button>
+                    <button type="button" className="bulten-duzen-dugme" disabled={i === 0} aria-label={t('bulten.duzen.yukari')}
+                      onClick={() => yap(() => iste(`api/bulten/yazi/${h.id}`, { method: 'PUT', body: JSON.stringify({ tasi: -1 }) }))}>↑</button>
+                    <button type="button" className="bulten-duzen-dugme" disabled={i === b.yazilar.length - 1} aria-label={t('bulten.duzen.asagi')}
+                      onClick={() => yap(() => iste(`api/bulten/yazi/${h.id}`, { method: 'PUT', body: JSON.stringify({ tasi: 1 }) }))}>↓</button>
+                    <button type="button" className="bulten-duzen-dugme bulten-duzen-sil" onClick={async () => {
+                      if (await onayla(t('bulten.yazi.silSor'), { evet: t('genel.sil'), tehlike: true })) {
+                        yap(() => iste(`api/bulten/yazi/${h.id}`, { method: 'DELETE' }), 'genel.silindi');
+                      }
+                    }}>{t('genel.sil')}</button>
+                  </span>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <Kutu acik={!!duzenlenen} onKapat={() => setDuzenlenen(null)} koru id="bulten-yazi-kutu">
+        {duzenlenen && (
+          <form className="kutu-ic" onSubmit={async o => {
+            o.preventDefault();
+            const f = o.currentTarget;
+            const govde = JSON.stringify({ baslik: f.baslik.value, metin: f.metin.value, fotoId: f.fotoId.value || null });
+            try {
+              if (duzenlenen.id) await iste(`api/bulten/yazi/${duzenlenen.id}`, { method: 'PUT', body: govde });
+              else await iste(`api/bulten/${b.ay}/yazi`, { method: 'POST', body: govde });
+              setDuzenlenen(null);
+              bildir(t('genel.kaydedildi'));
+              yenile();
+            } catch (err) { bildir(err.message, 'hata'); }
+          }}>
+            <div className="kutu-ust">
+              <h2>{t(duzenlenen.id ? 'bulten.yazi.duzenle' : 'bulten.yazi.ekle')}</h2>
+              <button type="button" className="kapat" data-kapat aria-label={t('genel.kapat')}>×</button>
+            </div>
+            <div className="form-izgara">
+              <label className="alan form-tam"><span>{t('bulten.yazi.baslik')}</span>
+                <input name="baslik" required maxLength={200} defaultValue={duzenlenen.baslik || ''} /></label>
+              <label className="alan form-tam"><span>{t('bulten.yazi.metin')}</span>
+                <textarea name="metin" rows={8} maxLength={8000} defaultValue={duzenlenen.metin || ''} /></label>
+              <p className="form-tam alan-ipucu">{t('bulten.notIpucu')}</p>
+              <label className="alan form-tam"><span>{t('bulten.yazi.gorsel')}</span>
+                <select name="fotoId" defaultValue={duzenlenen.fotoId || ''}>
+                  <option value="">{t('bulten.yazi.gorselYok')}</option>
+                  {gorseller.map(g => <option key={g.id} value={g.id}>{(g.aciklama || '').split('\n')[0] || g.ad}</option>)}
+                </select></label>
+              {!gorseller.length && <p className="form-tam alan-ipucu">{t('bulten.yazi.gorselIpucu')}</p>}
+            </div>
+            <div className="kutu-eylem">
+              <button type="submit" className="dugme dugme-birincil">{t('genel.kaydet')}</button>
+              <button type="button" className="dugme dugme-ikincil" data-kapat>{t('genel.vazgec')}</button>
+            </div>
+          </form>
+        )}
+      </Kutu>
+    </section>
   );
 }
 

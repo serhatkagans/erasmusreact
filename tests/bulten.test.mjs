@@ -91,3 +91,35 @@ test('kısa adres: /bulten ve /bulten/<ay> asıl sayfaya yönlenir', async () =>
   assert.equal(ayli.basliklar.get('location'), '../bulten.html?ay=2026-09');
   assert.equal((await anonim.iste('/bulten/2026-10')).basliklar.get('location'), '../bulten.html?ay=2026-10');
 });
+
+test('bülten düzeni: yalnızca koordinatör; bilinmeyen bölüm atılır, sıra tamamlanır', async () => {
+  const govde = { gizli: ['rakamlar', 'uydurma'], sira: ['sonraki', 'yazilar'], gizliMadde: ['faaliyet:3', 'bozuk madde'], manset: '  Ekimde neler oldu  ' };
+  assert.equal((await (await istemci(sunucu)).iste(`/api/bulten/${ay}/ayar`, { method: 'PUT', body: govde })).durum, 401);
+  assert.equal((await (await istemci(sunucu, ORTAK)).iste(`/api/bulten/${ay}/ayar`, { method: 'PUT', body: govde })).durum, 403);
+  const k = await istemci(sunucu, KOORDINATOR);
+  const yaz = await k.iste(`/api/bulten/${ay}/ayar`, { method: 'PUT', body: govde });
+  assert.equal(yaz.durum, 200);
+  assert.deepEqual(yaz.veri, { gizli: ['rakamlar'], sira: ['sonraki', 'yazilar', 'medya', 'izgara'], gizliMadde: ['faaliyet:3'], manset: 'Ekimde neler oldu' });
+  assert.deepEqual((await (await istemci(sunucu)).iste(`/api/bulten?ay=${ay}`)).veri.ayar, yaz.veri);
+});
+
+test('bülten haberleri: ekleme, sıralama, görsel ve silme', async () => {
+  const k = await istemci(sunucu, KOORDINATOR);
+  assert.equal((await k.iste(`/api/bulten/${ay}/yazi`, { method: 'POST', body: { baslik: ' ', metin: 'x' } })).durum, 400);
+  assert.equal((await (await istemci(sunucu, ORTAK)).iste(`/api/bulten/${ay}/yazi`, { method: 'POST', body: { baslik: 'A' } })).durum, 403);
+  const foto = await k.iste(`/api/bulten/${ay}/foto`, { method: 'POST', ham: PNG });
+  const a = await k.iste(`/api/bulten/${ay}/yazi`, { method: 'POST', body: { baslik: 'Birinci', metin: 'Metin', fotoId: foto.veri.id } });
+  const b = await k.iste(`/api/bulten/${ay}/yazi`, { method: 'POST', body: { baslik: 'İkinci' } });
+  assert.equal(a.durum, 201);
+  assert.equal((await k.iste(`/api/bulten/${ay}/yazi`, { method: 'POST', body: { baslik: 'X', fotoId: 999999 } })).durum, 400);
+  await k.iste(`/api/bulten/yazi/${b.veri.id}`, { method: 'PUT', body: { tasi: -1 } });
+  let liste = (await (await istemci(sunucu)).iste(`/api/bulten?ay=${ay}`)).veri.yazilar;
+  assert.deepEqual(liste.map(y => y.baslik), ['İkinci', 'Birinci']);
+  assert.equal(liste[1].fotoId, foto.veri.id);
+  /* Görsel silinince haber görselsiz kalır. */
+  await k.iste(`/api/bulten/foto/${foto.veri.id}`, { method: 'DELETE' });
+  liste = (await k.iste(`/api/bulten?ay=${ay}`)).veri.yazilar;
+  assert.equal(liste.find(y => y.baslik === 'Birinci').fotoId, null);
+  assert.equal((await k.iste(`/api/bulten/yazi/${a.veri.id}`, { method: 'DELETE' })).durum, 200);
+  assert.equal((await k.iste(`/api/bulten/yazi/${a.veri.id}`, { method: 'DELETE' })).durum, 404);
+});

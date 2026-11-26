@@ -11,6 +11,9 @@ import { CIKTILAR } from '../lib/cikti.mjs';
  *                                  (koordinatör; gövde: dosya)
  *   GET|DELETE /api/bulten/foto/:id
  *   PUT /api/bulten/foto/:id     açıklama: { aciklama } (ilk satır başlık, altı tanıtım)
+ *   PUT /api/bulten/2026-10/ayar  düzen: { gizli, sira, gizliMadde, manset }
+ *   POST /api/bulten/2026-10/yazi        haber: { baslik, metin, fotoId }
+ *   PUT|DELETE /api/bulten/yazi/:id      haberi değiştir ({ tasi: -1|1 } sırayı değiştirir) / sil
  *
  * Listeler TÜRETİLİR (panodaki gibi): görev tamamlanınca, dosya yüklenince,
  * faaliyet "tamamlandı" yapılınca bülten kendiliğinden dolar. Elle yazılan
@@ -63,6 +66,24 @@ export function ayCoz(metin, aylar = bultenAylari()) {
 }
 
 const NOT_SINIRI = 4000;
+
+/* Bülten düzeni (26 Kasım 2026): gizlenebilen bölümler ve sırası
+   değişebilen bölümler (izgara: yapılanlar + yapılacaklar yan yana). */
+export const BOLUMLER = ['rakamlar', 'icindekiler', 'yazilar', 'medya', 'yapilan', 'yapilacak', 'sonraki'];
+export const SIRALI = ['yazilar', 'medya', 'izgara', 'sonraki'];
+const YAZI_SINIRI = 8000;
+const MADDE = /^[a-z]+:[\w.-]{1,80}$/;
+
+/** Düzen gövdesini doğrular; bilinmeyen değerler atılır. */
+export function ayarDogrula(g = {}) {
+  const gizli = [...new Set((Array.isArray(g.gizli) ? g.gizli : []).filter(b => BOLUMLER.includes(b)))];
+  const gelen = (Array.isArray(g.sira) ? g.sira : []).filter(b => SIRALI.includes(b));
+  const sira = [...new Set([...gelen, ...SIRALI])];
+  const gizliMadde = [...new Set((Array.isArray(g.gizliMadde) ? g.gizliMadde : [])
+    .filter(m => typeof m === 'string' && MADDE.test(m)))].slice(0, 500);
+  const manset = typeof g.manset === 'string' ? g.manset.trim().slice(0, 200) : '';
+  return { gizli, sira, gizliMadde, manset };
+}
 const AYLIK_FOTO = 12;
 const ACIKLAMA_SINIRI = 400;
 
@@ -152,6 +173,69 @@ export function bultenRoutes({ db }) {
         'INSERT INTO bulten_foto (ay,ad,aciklama,tur,boyut,veri,yukleyen,created) VALUES (?,?,?,?,?,?,?,?)',
         [ay, ad, aciklama, tur, veri.length, veri, user.id, new Date().toISOString()]);
       return send(res, 201, { id: Number(id) });
+    }
+
+    /* --- Düzen ---------------------------------------------------------- */
+    if (req.method === 'PUT' && parca.length === 2 && parca[1] === 'ayar') {
+      const ay = parca[0];
+      if (!aylar.includes(ay)) return send(res, 404, { error: 'bulten.hata.ay' });
+      if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+      const ayar = ayarDogrula(await body(req));
+      await db.run('DELETE FROM bulten_ayar WHERE ay=?', [ay]);
+      await db.run('INSERT INTO bulten_ayar (ay,ayar,updated) VALUES (?,?,?)', [ay, JSON.stringify(ayar), new Date().toISOString()]);
+      return send(res, 200, ayar);
+    }
+
+    /* --- Haberler (serbest yazılar) ------------------------------------- */
+    const yaziGovde = async (g, ay) => {
+      const baslik = typeof g.baslik === 'string' ? g.baslik.trim() : '';
+      if (!baslik) throw new ValidationError('bulten.hata.yaziBaslik');
+      if (baslik.length > 200) throw new ValidationError('bulten.hata.yaziUzun');
+      const metin = typeof g.metin === 'string' ? g.metin.replace(/\r\n/g, '\n').trim() : '';
+      if (metin.length > YAZI_SINIRI) throw new ValidationError('bulten.hata.yaziUzun');
+      let fotoId = null;
+      if (g.fotoId != null && g.fotoId !== '') {
+        const f = await db.get('SELECT id FROM bulten_foto WHERE id=? AND ay=?', [Number(g.fotoId) || 0, ay]);
+        if (!f) throw new ValidationError('bulten.hata.foto');
+        fotoId = Number(f.id);
+      }
+      return { baslik, metin, fotoId };
+    };
+    if (req.method === 'POST' && parca.length === 2 && parca[1] === 'yazi') {
+      const ay = parca[0];
+      if (!aylar.includes(ay)) return send(res, 404, { error: 'bulten.hata.ay' });
+      if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+      const { baslik, metin, fotoId } = await yaziGovde(await body(req, 64000), ay);
+      const son = await db.get('SELECT MAX(sira) AS s FROM bulten_yazi WHERE ay=?', [ay]);
+      const simdi = new Date().toISOString();
+      const id = await db.insert('INSERT INTO bulten_yazi (ay,baslik,metin,foto_id,sira,yazan,created,updated) VALUES (?,?,?,?,?,?,?,?)',
+        [ay, baslik, metin, fotoId, Number(son?.s ?? -1) + 1, user.id, simdi, simdi]);
+      return send(res, 201, { id: Number(id) });
+    }
+    if (parca[0] === 'yazi' && parca.length === 2 && ['PUT', 'DELETE'].includes(req.method)) {
+      if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+      const yazi = await db.get('SELECT id,ay FROM bulten_yazi WHERE id=?', [Number(parca[1]) || 0]);
+      if (!yazi) return send(res, 404, { error: 'bulten.hata.yazi' });
+      if (req.method === 'DELETE') {
+        await db.run('DELETE FROM bulten_yazi WHERE id=?', [yazi.id]);
+        return send(res, 200, { ok: true });
+      }
+      const g = await body(req, 64000);
+      /* { tasi: -1 | 1 }: komşusuyla yer değiştirir. */
+      if (g.tasi === -1 || g.tasi === 1) {
+        const hepsi = await db.all('SELECT id,sira FROM bulten_yazi WHERE ay=? ORDER BY sira, id', [yazi.ay]);
+        const i = hepsi.findIndex(y => Number(y.id) === Number(yazi.id));
+        const j = i + g.tasi;
+        if (j >= 0 && j < hepsi.length) {
+          [hepsi[i], hepsi[j]] = [hepsi[j], hepsi[i]];
+          for (const [k, y] of hepsi.entries()) await db.run('UPDATE bulten_yazi SET sira=? WHERE id=?', [k, y.id]);
+        }
+        return send(res, 200, { ok: true });
+      }
+      const { baslik, metin, fotoId } = await yaziGovde(g, yazi.ay);
+      await db.run('UPDATE bulten_yazi SET baslik=?,metin=?,foto_id=?,updated=? WHERE id=?',
+        [baslik, metin, fotoId, new Date().toISOString(), yazi.id]);
+      return send(res, 200, { ok: true });
     }
 
     /* --- Koordinatör notu ------------------------------------------------- */
@@ -249,6 +333,11 @@ export function bultenRoutes({ db }) {
 
     const fotolar = (await db.all('SELECT id,ad,aciklama,tur,boyut FROM bulten_foto WHERE ay=? ORDER BY id', [ay]))
       .map(f => ({ id: Number(f.id), ad: f.ad, aciklama: f.aciklama, tur: f.tur, boyut: Number(f.boyut) }));
+    const ayarSatir = await db.get('SELECT ayar FROM bulten_ayar WHERE ay=?', [ay]);
+    let ayar;
+    try { ayar = ayarDogrula(ayarSatir ? JSON.parse(ayarSatir.ayar) : {}); } catch { ayar = ayarDogrula({}); }
+    const yazilar = (await db.all('SELECT id,baslik,metin,foto_id,sira FROM bulten_yazi WHERE ay=? ORDER BY sira, id', [ay]))
+      .map(y => ({ id: Number(y.id), baslik: y.baslik, metin: y.metin, fotoId: y.foto_id == null ? null : Number(y.foto_id) }));
     const not = await db.get('SELECT n.yapilanlar,n.yapilacaklar,n.updated,u.ad,u.username FROM bulten_not n LEFT JOIN users u ON u.id=n.yazan WHERE n.ay=?', [ay]);
 
     /* Oturumsuz okuyan: kişi adları ve klasör dosya adları çıkarılır. */
@@ -261,6 +350,7 @@ export function bultenRoutes({ db }) {
     return send(res, 200, {
       klasorDosyaSayi,
       ay, aylar, bas, son, gecmis, sonrakiAy, duzenleyebilir: !!user?.koordinator, uye: !!user, fotolar, maxFoto: AYLIK_FOTO,
+      ayar, yazilar,
       not: { yapilanlar: not?.yapilanlar || '', yapilacaklar: not?.yapilacaklar || '',
         updated: not?.updated || null, yazan: not && user ? (not.ad || not.username || '') : '' },
       yapilanlar: { faaliyet: yapilanFaaliyet, gorev: yapilanGorev, cikti: yapilanCikti,
