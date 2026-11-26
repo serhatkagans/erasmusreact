@@ -7,7 +7,7 @@ import { partners, partnerIds, hashPassword, checkPassword, checkUsername, norma
  * da var (yalnızca koordinatör); bu betik sunucuya erişilemediğinde içindir.
  *
  *   node scripts/kullanici.mjs listele
- *   node scripts/kullanici.mjs ekle <kullanici> <kurum> <parola> [--koordinator] [--ad "Ad Soyad"]
+ *   node scripts/kullanici.mjs ekle <kullanici> <kurum> <parola> [--koordinator] [--yonetici] [--ad "Ad Soyad"]
  *   node scripts/kullanici.mjs parola <kullanici> <yeni-parola>
  *   node scripts/kullanici.mjs sil <kullanici>
  */
@@ -25,7 +25,7 @@ const konum = argumanlar.filter((deger, i) =>
 const kullanim = () => {
   console.log(`Kullanım:
   listele
-  ekle <kullanici> <kurum> <parola> [--koordinator] [--ad "Ad Soyad"]
+  ekle <kullanici> <kurum> <parola> [--koordinator] [--yonetici] [--ad "Ad Soyad"]
   parola <kullanici> <yeni-parola>
   sil <kullanici>
 
@@ -36,11 +36,11 @@ const db = await openDb();
 
 try {
   if (komut === 'listele') {
-    const satirlar = await db.all('SELECT username,ad,partner,koordinator FROM users ORDER BY username');
+    const satirlar = await db.all('SELECT username,ad,partner,koordinator,yonetici FROM users ORDER BY username');
     if (!satirlar.length) console.log('Hesap yok.');
     for (const s of satirlar) {
       const kurum = partners.find(p => p.id === s.partner);
-      console.log(`${s.username.padEnd(20)} ${(kurum?.short || s.partner).padEnd(12)} ${s.koordinator ? 'koordinatör' : 'ortak'}  ${s.ad || ''}`);
+      console.log(`${s.username.padEnd(20)} ${(kurum?.short || s.partner).padEnd(12)} ${s.yonetici ? 'yönetici' : s.koordinator ? 'koordinatör' : 'ortak'}  ${s.ad || ''}`);
     }
 
   } else if (komut === 'ekle') {
@@ -52,8 +52,10 @@ try {
     if (await db.get('SELECT id FROM users WHERE username=?', [kullanici])) {
       throw new ValidationError('Bu kullanıcı adı zaten var.');
     }
-    await db.run('INSERT INTO users (username,password,ad,partner,koordinator) VALUES (?,?,?,?,?)',
-      [kullanici, hashPassword(parola), typeof bayrak('ad') === 'string' ? bayrak('ad') : '', kurum, bayrak('koordinator') ? 1 : 0]);
+    /* --yonetici: Yönetim sayfasını açan admin hesabı (koordinatör yetkisi dahil). */
+    await db.run('INSERT INTO users (username,password,ad,partner,koordinator,yonetici) VALUES (?,?,?,?,?,?)',
+      [kullanici, hashPassword(parola), typeof bayrak('ad') === 'string' ? bayrak('ad') : '', kurum,
+       bayrak('koordinator') || bayrak('yonetici') ? 1 : 0, bayrak('yonetici') ? 1 : 0]);
     console.log(`Hesap açıldı: ${kullanici} (${kurum})`);
 
   } else if (komut === 'parola') {

@@ -929,7 +929,7 @@ test('hesap düzenleme: yalnızca koordinatör, kendi yetkisini düşüremez', a
 
   const duzeltildi = await koordinator.iste(yol, { method: 'PUT', body: govde });
   assert.equal(duzeltildi.durum, 200);
-  assert.deepEqual({ ...duzeltildi.veri, id: undefined }, { id: undefined, ad: 'Doğru Yazılmış', kullanici: 'dogruyazilmis', partner: 'cecf', koordinator: true });
+  assert.deepEqual({ ...duzeltildi.veri, id: undefined }, { id: undefined, ad: 'Doğru Yazılmış', kullanici: 'dogruyazilmis', partner: 'cecf', koordinator: true, yonetici: false });
   /* Parola değişmedi: yeni kullanıcı adıyla eski parola geçer. */
   const anonim = await istemci(sunucu);
   assert.equal((await anonim.iste('/api/giris', { method: 'POST', body: { kullanici: 'dogruyazilmis', parola: 'DuzenleParola26' } })).durum, 200);

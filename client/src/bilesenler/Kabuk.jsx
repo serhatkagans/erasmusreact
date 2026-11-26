@@ -34,6 +34,7 @@ const MENU = [
   { anahtar: 'menu.klasorler', href: 'klasorler.html' },
   { anahtar: 'menu.drive', href: 'drive.html' },
   { anahtar: 'menu.kullanicilar', href: 'kullanicilar.html', koordinator: true },
+  { anahtar: 'menu.yonetim', href: 'yonetim.html', yonetici: true },
 ];
 
 /* Oturumsuz ziyaretçi yalnızca tanıtım sayfasını görür; menüsü o sayfanın
@@ -78,7 +79,7 @@ function UstBant() {
     return () => document.removeEventListener('keydown', tus);
   }, [menuAcik]);
 
-  const ogeler = MENU.filter(o => !o.koordinator || k?.koordinator);
+  const ogeler = MENU.filter(o => (!o.koordinator || k?.koordinator) && (!o.yonetici || k?.yonetici));
   /* Bülten herkese açık: ziyaretçi orada da tanıtım menüsünü görür;
      çapalar ana sayfaya döner. */
   const tanitim = !k && (sayfa === 'index.html' || sayfa === 'bulten.html');

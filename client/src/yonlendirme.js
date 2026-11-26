@@ -18,7 +18,7 @@ import { useSyncExternalStore } from 'react';
  */
 
 export const SAYFALAR = ['index.html', 'pano.html', 'takvim.html', 'ciktilar.html', 'ekip.html', 'formlar.html',
-  'belge.html', 'klasorler.html', 'drive.html', 'bulten.html', 'kullanicilar.html', 'giris.html', 'profil.html', 'anket.html', 'proje.html'];
+  'belge.html', 'klasorler.html', 'drive.html', 'bulten.html', 'kullanicilar.html', 'giris.html', 'profil.html', 'anket.html', 'proje.html', 'yonetim.html'];
 
 /** Oturumsuz açılabilen sayfalar (sunucudaki ACIK_SAYFA ile aynı). Ana
     adres oturumsuz ziyaretçiye tanıtım sayfasını gösterir. */

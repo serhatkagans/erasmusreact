@@ -13,7 +13,7 @@ import { hesabiSil } from '../lib/hesap.mjs';
  * arayüz onları isteğin dilinde gösterir.
  */
 export function kullanicilarRoutes({ db }) {
-  const shape = r => ({ id: r.id, kullanici: r.username, ad: r.ad, partner: r.partner, koordinator: !!r.koordinator });
+  const shape = r => ({ id: r.id, kullanici: r.username, ad: r.ad, partner: r.partner, koordinator: !!r.koordinator || !!r.yonetici, yonetici: !!r.yonetici });
 
   const sifirlaYolu = /^\/api\/kullanicilar\/(\d+)\/parola$/;
   const hesapYolu = /^\/api\/kullanicilar\/(\d+)$/;
@@ -50,7 +50,7 @@ export function kullanicilarRoutes({ db }) {
        (ayrı uç: sıfırlama). Yönetici KENDİ tam yetkisini kaldıramaz — son
        yönetici kendini kurum hesabına düşürürse kimse geri veremez. */
     if (hesap && req.method === 'PUT') {
-      const hedef = await db.get('SELECT id,username,koordinator FROM users WHERE id=?', [Number(hesap[1])]);
+      const hedef = await db.get('SELECT id,username,koordinator,yonetici FROM users WHERE id=?', [Number(hesap[1])]);
       if (!hedef) return send(res, 404, { error: 'kullanicilar.hata.yok' });
       const veri = await body(req);
       const ad = requireText(veri.ad, 'Ad soyad', { max: 120 });
@@ -59,15 +59,18 @@ export function kullanicilarRoutes({ db }) {
       catch { throw new ValidationError('kullanicilar.hata.kullaniciAdi'); }
       if (!partnerIds.includes(veri.partner)) throw new ValidationError('kullanicilar.hata.kurum');
       const koordinator = veri.koordinator === true;
-      if (hedef.id === user.id && !koordinator) return send(res, 400, { error: 'kullanicilar.hata.kendiYetki' });
+      /* Yönetici (admin) yetkisini yalnızca yönetici verir ya da alır;
+         öbür koordinatörün isteğinde var olan değer korunur. */
+      const yonetici = user.yonetici ? veri.yonetici === true : !!hedef.yonetici;
+      if (hedef.id === user.id && (!koordinator && !yonetici || user.yonetici && !yonetici)) return send(res, 400, { error: 'kullanicilar.hata.kendiYetki' });
       if (kullanici !== hedef.username && await db.get('SELECT id FROM users WHERE username=?', [kullanici])) {
         return send(res, 409, { error: 'kullanicilar.hata.var' });
       }
-      await db.run('UPDATE users SET username=?,ad=?,partner=?,koordinator=? WHERE id=?',
-        [kullanici, ad, veri.partner, koordinator ? 1 : 0, hedef.id]);
+      await db.run('UPDATE users SET username=?,ad=?,partner=?,koordinator=?,yonetici=? WHERE id=?',
+        [kullanici, ad, veri.partner, koordinator ? 1 : 0, yonetici ? 1 : 0, hedef.id]);
       /* Ekipteki ad hesabın adının kopyasıdır; birlikte güncellenir. */
       await db.run('UPDATE team SET ad=? WHERE user_id=?', [ad, hedef.id]);
-      return send(res, 200, shape(await db.get('SELECT id,username,ad,partner,koordinator FROM users WHERE id=?', [hedef.id])));
+      return send(res, 200, shape(await db.get('SELECT id,username,ad,partner,koordinator,yonetici FROM users WHERE id=?', [hedef.id])));
     }
 
     if (hesap) {
@@ -80,7 +83,7 @@ export function kullanicilarRoutes({ db }) {
     }
 
     if (req.method === 'GET') {
-      const satirlar = await db.all('SELECT id,username,ad,partner,koordinator FROM users ORDER BY partner, ad, username');
+      const satirlar = await db.all('SELECT id,username,ad,partner,koordinator,yonetici FROM users ORDER BY partner, ad, username');
       return send(res, 200, { kullanicilar: satirlar.map(shape) });
     }
 
@@ -97,9 +100,9 @@ export function kullanicilarRoutes({ db }) {
       if (await db.get('SELECT id FROM users WHERE username=?', [kullanici])) {
         return send(res, 409, { error: 'kullanicilar.hata.var' });
       }
-      const id = await db.insert('INSERT INTO users (username,password,ad,partner,koordinator) VALUES (?,?,?,?,?)',
-        [kullanici, hashPassword(parola), ad, veri.partner, veri.koordinator === true ? 1 : 0]);
-      return send(res, 201, shape(await db.get('SELECT id,username,ad,partner,koordinator FROM users WHERE id=?', [id])));
+      const id = await db.insert('INSERT INTO users (username,password,ad,partner,koordinator,yonetici) VALUES (?,?,?,?,?,?)',
+        [kullanici, hashPassword(parola), ad, veri.partner, veri.koordinator === true ? 1 : 0, user.yonetici && veri.yonetici === true ? 1 : 0]);
+      return send(res, 201, shape(await db.get('SELECT id,username,ad,partner,koordinator,yonetici FROM users WHERE id=?', [id])));
     }
   };
 }

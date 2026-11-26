@@ -23,6 +23,7 @@ const SAYFA = {
   'profil.html': lazy(() => import('./sayfalar/Profil.jsx')),
   'anket.html': lazy(() => import('./sayfalar/Anket.jsx')),
   'proje.html': lazy(() => import('./sayfalar/ProjeKarti.jsx')),
+  'yonetim.html': lazy(() => import('./sayfalar/Yonetim.jsx')),
 };
 
 export default function Uygulama() {

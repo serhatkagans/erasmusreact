@@ -23,6 +23,8 @@ import { panoRoutes } from './routes/pano.mjs';
 import { driveRoutes } from './routes/drive.mjs';
 import { bultenRoutes, ayCoz } from './routes/bulten.mjs';
 import { anketRoutes } from './routes/anket.mjs';
+import { yonetimRoutes } from './routes/yonetim.mjs';
+import { siteYukle, ozelGorsel } from './lib/site.mjs';
 
 /**
  * HTTP sunucusu: ortak başlıklar, oturum ve dil çözümü, yönlendirme zinciri
@@ -55,6 +57,8 @@ const acikOkuma = yol => yol === '/api/bulten' || /^\/api\/bulten\/foto\/\d+$/.t
    anahtara bakarak karar verir (yalnızca yayındaki dış anket). */
 const acikAnket = yol => /^\/api\/anket\/[\w-]{8,40}(\/gorsel)?$/.test(yol);
 const db = await openDb();
+/* Yönetim sayfasında değiştirilen künye, kurum, metin ve görseller. */
+await siteYukle(db);
 
 const etkinlik = etkinlikRoutes({ db });
 const oturum = oturumRoutes({ db });
@@ -72,6 +76,7 @@ const pano = panoRoutes({ db });
 const drive = driveRoutes({ db });
 const bulten = bultenRoutes({ db });
 const anket = anketRoutes({ db });
+const yonetim = yonetimRoutes({ db });
 
 /* Arayüz React ile yazılır (client/) ve `npm run build` ile dist/ klasörüne
    derlenir. Sayfa adresleri eskisiyle aynıdır — `takvim.html`,
@@ -79,7 +84,7 @@ const anket = anketRoutes({ db });
    React uygulaması (dist/index.html) verilir; hangi sayfanın çizileceğine
    tarayıcıda karar verilir. */
 const SAYFALAR = new Set(['/index.html', '/takvim.html', '/giris.html', '/ekip.html', '/formlar.html', '/belge.html',
-  '/klasorler.html', '/profil.html', '/kullanicilar.html', '/ciktilar.html', '/pano.html', '/drive.html', '/bulten.html', '/anket.html', '/proje.html']);
+  '/klasorler.html', '/profil.html', '/kullanicilar.html', '/ciktilar.html', '/pano.html', '/drive.html', '/bulten.html', '/anket.html', '/proje.html', '/yonetim.html']);
 const TURLER = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2', '.json': 'application/json',
@@ -106,10 +111,16 @@ function statikYol(pathname) {
 async function staticFile(req, res, url, readOnly) {
   const yol = statikYol(url.pathname);
   if (!yol || !readOnly) return;
+  /* Yönetim sayfasından yüklenen görsel, derlemedeki dosyanın yerine geçer
+     (adı aynı kalır, sayfalar değişmeden yeni logoyu gösterir). */
+  const ozel = !yol.sayfa && ozelGorsel(yol.dosya);
   let content;
-  try { content = await readFile(new URL(yol.dosya, DIST)); } catch { return; }
-  const type = yol.tur;
-  const etag = '"' + createHash('sha256').update(content).digest('hex').slice(0, 32) + '"';
+  if (ozel) content = ozel.veri;
+  else try { content = await readFile(new URL(yol.dosya, DIST)); } catch { return; }
+  const type = ozel ? ozel.tur : yol.tur;
+  const etag = ozel ? ozel.etag : '"' + createHash('sha256').update(content).digest('hex').slice(0, 32) + '"';
+  /* Yüklenen SVG kendi başına açılırsa içindeki betik çalışmasın. */
+  if (ozel) res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'; style-src 'unsafe-inline'");
   /* assets/ altındaki dosyaların adı içeriğin özetini taşır: değişince adı
      da değişir, bu yüzden uzun süre önbellekte kalabilirler. */
   res.setHeader('Cache-Control', yol.dosya.startsWith('assets/') ? 'public, max-age=31536000, immutable' : 'no-cache');
@@ -162,10 +173,11 @@ const server = createServer(async (req, res) => {
 
     const token = sessionToken(req);
     const user = token
-      ? await db.get('SELECT u.id,u.username,u.ad,u.partner,u.koordinator FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>?',
+      ? await db.get('SELECT u.id,u.username,u.ad,u.partner,u.koordinator,u.yonetici FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>?',
           [digest(token), Date.now()])
       : undefined;
-    if (user) user.koordinator = !!user.koordinator;
+    /* Yönetici koordinatörün bütün yetkilerini de taşır. */
+    if (user) { user.yonetici = !!user.yonetici; user.koordinator = !!user.koordinator || user.yonetici; }
 
     const dil = negotiate(req, url);
     /* Adres çubuğundan seçilen dil çereze yazılır ki sonraki sayfalarda
@@ -215,7 +227,7 @@ const server = createServer(async (req, res) => {
         durumlar: statuses,
         yerler: venues,
         minParola: MIN_PASSWORD,
-        kullanici: user ? { id: user.id, kullanici: user.username, ad: user.ad, partner: user.partner, koordinator: user.koordinator } : null,
+        kullanici: user ? { id: user.id, kullanici: user.username, ad: user.ad, partner: user.partner, koordinator: user.koordinator, yonetici: user.yonetici } : null,
       });
     }
 
@@ -240,6 +252,7 @@ const server = createServer(async (req, res) => {
     if (await drive(ctx)) return;
     if (await bulten(ctx)) return;
     if (await anket(ctx)) return;
+    if (await yonetim(ctx)) return;
     if (await staticFile(req, res, url, readOnly)) return;
 
     send(res, 404, { error: 'Sayfa bulunamadı.' });

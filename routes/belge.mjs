@@ -158,7 +158,7 @@ export function belgeRoutes({ db }) {
       kunye: {
         proje: t('site.ad'),
         program: t('altbilgi.program'),
-        projeNo: PROJECT.formId,
+        projeNo: PROJECT.projectNo,
         finanse: t('ab.finanse'),
         feragat: t('altbilgi.feragat'),
         /* Belgenin alt ortasında, ev sahibi olmayan belgelerde gösterilir. */

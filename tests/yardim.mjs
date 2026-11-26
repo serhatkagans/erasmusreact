@@ -57,7 +57,7 @@ export async function sunucuBaslat({ hesaplar = [] } = {}) {
      anda yazmaya çalışmasın. */
   for (const h of hesaplar) {
     await calistir('scripts/kullanici.mjs',
-      ['ekle', h.kullanici, h.kurum, h.parola, ...(h.koordinator ? ['--koordinator'] : []), '--ad', h.ad || h.kullanici],
+      ['ekle', h.kullanici, h.kurum, h.parola, ...(h.koordinator ? ['--koordinator'] : []), ...(h.yonetici ? ['--yonetici'] : []), '--ad', h.ad || h.kullanici],
       env);
   }
 

@@ -1,0 +1,28 @@
+/* Yönetim (admin) sayfası — sayfalar/Yonetim.jsx */
+.yonetim { padding-bottom: 48px }
+.yonetim-sekmeler { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; border-bottom: 1px solid var(--cizgi) }
+.yonetim-sekmeler button { border: 0; background: none; padding: 10px 14px; font: inherit; font-weight: 650; color: var(--soluk); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px }
+.yonetim-sekmeler button:hover { color: var(--vurgu) }
+.yonetim-sekmeler button[aria-current="page"] { color: var(--vurgu); border-bottom-color: var(--vurgu) }
+.yonetim-kart { background: var(--kart); border: 1px solid var(--cizgi); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px }
+.yonetim-kart h2 { font-size: 1.15rem; margin: 0 0 14px }
+.yonetim-kart h3 { font-size: 1rem; margin: 8px 0 8px }
+.yonetim-kod { font-size: .78rem; font-weight: 600; color: var(--soluk) }
+.yonetim-varsayilan { font-size: .78rem; color: #7a4f06; overflow-wrap: anywhere }
+.yonetim-eylem { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.yonetim-not { margin: 0 0 14px }
+.yonetim-arac { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 12px }
+.yonetim-arac .onay { min-height: 42px }
+.yonetim-metinler { display: grid; gap: 10px }
+.yonetim-metin { display: grid; gap: 6px; background: var(--kart); border: 1px solid var(--cizgi); border-radius: 12px; padding: 12px 14px }
+.yonetim-metin-ozel { border-left: 4px solid var(--vurgu) }
+.yonetim-metin-bas { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0 }
+.yonetim-metin-bas code { font-size: .8rem; color: var(--soluk); overflow-wrap: anywhere }
+.yonetim-metin-tr { margin: 0; font-size: .84rem; color: var(--soluk); white-space: pre-line }
+.yonetim-metin input, .yonetim-metin textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--cizgi-koyu); border-radius: 8px; background: var(--kart); font: inherit; color: var(--murekkep) }
+.yonetim-metin textarea { resize: vertical }
+.yonetim-gorseller { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) }
+.yonetim-gorsel { display: grid; gap: 8px; background: var(--kart); border: 1px solid var(--cizgi); border-radius: 12px; padding: 12px }
+.yonetim-gorsel-on { display: grid; place-items: center; height: 120px; border-radius: 8px; background: repeating-conic-gradient(#eef1f4 0 25%, #fff 0 50%) 0 0 / 16px 16px }
+.yonetim-gorsel-on img { max-width: 100%; max-height: 110px; object-fit: contain }
+.yonetim-gorsel label.dugme { cursor: pointer }

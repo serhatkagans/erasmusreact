@@ -74,7 +74,7 @@ export default function Kullanicilar() {
                     <td className="kullanicilar-kod">{k.kullanici}</td>
                     <td title={ortakAdi(k.partner)}>{ortakKisa(k.partner)}</td>
                     <td><span className={k.koordinator ? 'yetki-rozet yetki-tam' : 'yetki-rozet'}>
-                      {t(k.koordinator ? 'kullanicilar.yetki.tam' : 'kullanicilar.yetki.kurum')}</span></td>
+                      {t(k.yonetici ? 'kullanicilar.yetki.yonetici' : k.koordinator ? 'kullanicilar.yetki.tam' : 'kullanicilar.yetki.kurum')}</span></td>
                     <td><a className="metin-bag" href={`profil.html?u=${encodeURIComponent(k.kullanici)}`}>{t('kullanicilar.profilAc')}</a></td>
                     <td className="kullanicilar-islem">
                       <button type="button" className="dugme dugme-hayalet dugme-kucuk" onClick={() => setDuzen({ k })}>{t('kullanicilar.duzenle')}</button>
@@ -173,7 +173,7 @@ function HesapForm({ k, kapat, yenile }) {
       setHata('');
       setBekliyor(true);
       try {
-        const govde = { ad: f.ad.value, kullanici: kullaniciAdi, partner: f.partner.value, koordinator: f.koordinator.checked };
+        const govde = { ad: f.ad.value, kullanici: kullaniciAdi, partner: f.partner.value, koordinator: f.koordinator.checked, yonetici: !!f.yonetici?.checked };
         if (k) {
           await iste(`api/kullanicilar/${k.id}`, { method: 'PUT', body: JSON.stringify(govde) });
           /* Kendi adını ya da kurumunu değiştirdiyse üst banttaki rozet de güncellensin. */
@@ -212,6 +212,13 @@ function HesapForm({ k, kapat, yenile }) {
           <input name="koordinator" type="checkbox" defaultChecked={!!k?.koordinator} disabled={!!k && k.id === durum.kullanici.id} />
           {' '}<span>{t('kullanicilar.tamYetki')}</span>
         </label>
+        {/* Yönetici (admin) yetkisini yalnızca yönetici verir; kendi yetkisini kaldıramaz. */}
+        {durum.kullanici.yonetici && (
+          <label className="onay form-tam">
+            <input name="yonetici" type="checkbox" defaultChecked={!!k?.yonetici} disabled={!!k && k.id === durum.kullanici.id} />
+            {' '}<span>{t('kullanicilar.yoneticiYetki')}</span>
+          </label>
+        )}
       </div>
       <p className="hata" role="alert">{hata}</p>
       <div className="kutu-eylem">
