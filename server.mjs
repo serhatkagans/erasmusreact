@@ -50,7 +50,7 @@ const ACIK_SAYFA = new Set(['/index.html', '/giris.html', '/profil.html', '/bult
    sayfasını herkes görebilsin"). Yalnızca OKUMA açık; not yazma, fotoğraf
    ekleme ve silme koordinatörde kalır. Oturumsuz okuyana kişi adları ve
    klasördeki dosya adları gönderilmez (routes/bulten.mjs). */
-const acikOkuma = yol => yol === '/api/bulten' || /^\/api\/bulten\/foto\/\d+$/.test(yol);
+const acikOkuma = yol => yol === '/api/bulten' || /^\/api\/bulten\/(foto\/\d+|yazi\/\d+\/gorsel)$/.test(yol);
 /* Dışarıya açık anket (kullanıcı kararı, 5 Kasım 2026: "dışarı için bölümü
    ayır"): bağlantıyı alan herkes o TEK anketi okur ve doldurur. Okuma ve
    gönderme ikisi de açık; hangi formun açık olduğuna routes/anket.mjs

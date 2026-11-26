@@ -123,3 +123,21 @@ test('bülten haberleri: ekleme, sıralama, görsel ve silme', async () => {
   assert.equal((await k.iste(`/api/bulten/yazi/${a.veri.id}`, { method: 'DELETE' })).durum, 200);
   assert.equal((await k.iste(`/api/bulten/yazi/${a.veri.id}`, { method: 'DELETE' })).durum, 404);
 });
+
+test('bülten haberinin kendi görseli: koordinatör yükler, herkes görür, galeriye girmez', async () => {
+  const k = await istemci(sunucu, KOORDINATOR);
+  const h = await k.iste(`/api/bulten/${ay}/yazi`, { method: 'POST', body: { baslik: 'Görselli haber' } });
+  const yol = `/api/bulten/yazi/${h.veri.id}/gorsel`;
+  assert.equal((await (await istemci(sunucu, ORTAK)).iste(yol, { method: 'PUT', ham: PNG })).durum, 403);
+  assert.equal((await k.iste(yol, { method: 'PUT', ham: Buffer.from('<svg></svg>') })).durum, 400);
+  assert.equal((await k.iste(yol, { method: 'PUT', ham: PNG })).durum, 200);
+  const anonim = await istemci(sunucu);
+  const g = await anonim.iste(yol);
+  assert.equal(g.durum, 200);
+  assert.deepEqual(g.veri, PNG);
+  const b = (await anonim.iste(`/api/bulten?ay=${ay}`)).veri;
+  assert.ok(b.yazilar.find(y => y.id === h.veri.id).gorsel);
+  assert.ok(!b.fotolar.some(f => f.boyut === PNG.length && f.ad === 'medya.png' && f.id === h.veri.id));
+  assert.equal((await k.iste(yol, { method: 'DELETE' })).durum, 200);
+  assert.equal((await anonim.iste(yol)).durum, 404);
+});

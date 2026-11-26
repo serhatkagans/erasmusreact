@@ -1358,12 +1358,12 @@
   "bulten.kunyeUst": "Erasmus+ · KA220-YOU",
   "bulten.yazilar": "News",
   "bulten.yazilarUst": "This month",
-  "bulten.yazilar.bos": "No news written for this month. Use \"Add news\" to add a title, text and image.",
+  "bulten.yazilar.bos": "No news for this month. Use \"Add news\" next to the heading to add a title, text and image.",
   "bulten.yazi.ekle": "Add news",
   "bulten.yazi.duzenle": "Edit",
   "bulten.yazi.baslik": "Title",
   "bulten.yazi.metin": "Text",
-  "bulten.yazi.gorsel": "Image (from this month's photos)",
+  "bulten.yazi.gorsel": "Image",
   "bulten.yazi.gorselYok": "No image",
   "bulten.yazi.gorselIpucu": "To pick an image, first upload a photo to the \"Photos of the month\" section.",
   "bulten.yazi.silSor": "Delete this news item from the newsletter?",
@@ -1383,5 +1383,12 @@
   "bulten.duzen.bolum.yazilar": "News",
   "bulten.duzen.bolum.medya": "Photos and videos of the month",
   "bulten.duzen.bolum.izgara": "Done and to do",
-  "bulten.duzen.bolum.sonraki": "Next month"
+  "bulten.duzen.bolum.sonraki": "Next month",
+  "bulten.yazi.duzenleBaslik": "Edit news",
+  "bulten.yazi.gorselMevcut": "Current image of this news item",
+  "bulten.yazi.gorselYukle": "Upload an image from your computer",
+  "bulten.yazi.gorselGaleri": "Choose from this month's photos",
+  "bulten.yazi.dosya": "Image file (JPG, PNG, WEBP, GIF; up to 8 MB)",
+  "bulten.yazi.dosyaSec": "Choose the image to upload.",
+  "bulten.yazi.ipucu": "Lines starting with \"-\" become bullet points; links are clickable. A bullet with a social media account or e-mail address is shown as a card."
 }

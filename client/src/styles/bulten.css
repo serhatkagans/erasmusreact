@@ -262,6 +262,10 @@
 .bulten-haber.gorselli { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); align-items: start }
 .bulten-haber img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; display: block }
 .bulten-haber h3 { font-family: var(--serif); font-size: 1.35rem; line-height: 1.25; margin: 0 0 8px; color: var(--murekkep) }
+.bulten-haber .bulten-yazi > :first-child:is(p)::first-letter { float: none; margin: 0; font-size: inherit; line-height: inherit; font-weight: inherit; color: inherit }
+.bulten-haber .bulten-yazi { font-size: 1rem }
+.bulten-haber-onizleme { max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; border: 1px solid var(--cizgi) }
+.bulten-haber > a { display: block }
 @media (max-width: 640px) { .bulten-haber.gorselli { grid-template-columns: minmax(0, 1fr) } }
 
 @media print {

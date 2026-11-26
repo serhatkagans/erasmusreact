@@ -1358,12 +1358,12 @@
   "bulten.kunyeUst": "Erasmus+ · KA220-YOU",
   "bulten.yazilar": "Haberler",
   "bulten.yazilarUst": "Bu ay",
-  "bulten.yazilar.bos": "Bu ay için haber yazılmadı. \"Haber ekle\" ile başlık, metin ve görsel ekleyin.",
+  "bulten.yazilar.bos": "Bu ay için haber yok. Başlığın yanındaki \"Haber ekle\" ile başlık, metin ve görsel ekleyin.",
   "bulten.yazi.ekle": "Haber ekle",
   "bulten.yazi.duzenle": "Düzenle",
   "bulten.yazi.baslik": "Başlık",
   "bulten.yazi.metin": "Metin",
-  "bulten.yazi.gorsel": "Görsel (ayın fotoğraflarından)",
+  "bulten.yazi.gorsel": "Görsel",
   "bulten.yazi.gorselYok": "Görsel yok",
   "bulten.yazi.gorselIpucu": "Görsel seçmek için önce \"Ayın fotoğrafları\" bölümüne fotoğraf yükleyin.",
   "bulten.yazi.silSor": "Bu haber bültenden silinsin mi?",
@@ -1383,5 +1383,12 @@
   "bulten.duzen.bolum.yazilar": "Haberler",
   "bulten.duzen.bolum.medya": "Ayın fotoğrafları ve videoları",
   "bulten.duzen.bolum.izgara": "Yapılanlar ve yapılacaklar",
-  "bulten.duzen.bolum.sonraki": "Gelecek ay"
+  "bulten.duzen.bolum.sonraki": "Gelecek ay",
+  "bulten.yazi.duzenleBaslik": "Haberi düzenle",
+  "bulten.yazi.gorselMevcut": "Haberin şimdiki görseli",
+  "bulten.yazi.gorselYukle": "Bilgisayardan görsel yükle",
+  "bulten.yazi.gorselGaleri": "Ayın fotoğraflarından seç",
+  "bulten.yazi.dosya": "Görsel dosyası (JPG, PNG, WEBP, GIF; en çok 8 MB)",
+  "bulten.yazi.dosyaSec": "Yüklenecek görseli seçin.",
+  "bulten.yazi.ipucu": "\"-\" ile başlayan satırlar madde olur; bağlantılar tıklanabilir. Maddede bir sosyal medya hesabı ya da e-posta adresi varsa kart olarak gösterilir."
 }

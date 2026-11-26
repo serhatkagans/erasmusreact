@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { durum, t, iste, ortakKisa, etkinlikBaslik, tamTarih, tarihAraligi, ayYil, bugun, boyutYaz } from '../ortak.js';
+import { durum, t, iste, ortakKisa, etkinlikBaslik, tamTarih, tarihAraligi, ayYil, bugun, boyutYaz, hataMetni } from '../ortak.js';
 import { useVeri } from '../kancalar.js';
 import { useKonum } from '../yonlendirme.js';
 import { useBaslik } from '../bilesenler/Kabuk.jsx';
@@ -279,12 +279,12 @@ export default function Bulten() {
     const projeAy = bas ? ayFark(bas, b.ay) + 1 : 1;
     const toplamAy = bas && son ? ayFark(bas, son) + 1 : 0;
     const medyaVar = (b.fotolar.length > 0 || b.duzenleyebilir) && gorunur('medya');
-    const yazilarVar = (b.yazilar.length > 0 || acik) && gorunur('yazilar');
+    const yazilarVar = (b.yazilar.length > 0 || b.duzenleyebilir) && gorunur('yazilar');
     const izgaraVar = gorunur('yapilan') || gorunur('yapilacak');
 
     /* Sırası değişebilen bölümler: haberler, medya, yapılanlar/yapılacaklar, gelecek ay. */
     const BOLUM = {
-      yazilar: yazilarVar && { icerik: ['bulten-yazilar', 'bulten.yazilar'], ciz: () => <Haberler b={b} acik={acik} yenile={yenile} /> },
+      yazilar: yazilarVar && { icerik: ['bulten-yazilar', 'bulten.yazilar'], ciz: () => <Haberler b={b} yenile={yenile} /> },
       medya: medyaVar && { icerik: ['bulten-foto-bas', 'bulten.fotolar'], ciz: () => <Fotolar b={b} yenile={yenile} /> },
       izgara: izgaraVar && {
         icerik: [gorunur('yapilan') && ['bulten-yapilan', 'bulten.yapilanlar'],
@@ -320,7 +320,7 @@ export default function Bulten() {
         ),
       },
       sonraki: gorunur('sonraki') && {
-        icerik: [['bulten-sonraki', 'bulten.sonraki', { ay: ayAdi(b.sonrakiAy) }]],
+        icerik: ['bulten-sonraki', 'bulten.sonraki', { ay: ayAdi(b.sonrakiAy) }],
         ciz: () => (
           <Bolum id="bulten-sonraki" sinif="bulten-sonraki" ust={t('bulten.gelecekSayi')} baslik={t('bulten.sonraki', { ay: ayAdi(b.sonrakiAy) })}
             sag={acik && <BolumGizle ad="sonraki" ayar={ayar} kaydet={ayarKaydet} />}>
@@ -510,13 +510,20 @@ function MansetKutusu({ acik, ay, deger, kapat, kaydet }) {
 }
 
 /**
- * Haberler: koordinatörün yazdığı serbest yazılar (başlık, metin, isteğe
- * bağlı görsel). Görsel ayın medyasından seçilir. Metin ay notuyla aynı
+ * Haberler: koordinatörün o ay için yazdığı haberler (başlık, metin,
+ * isteğe bağlı görsel). Ayın fotoğrafları bölümü gibi düzenleyene hep
+ * açıktır: "Haber ekle" bölümün başlığındadır. Görsel habere doğrudan
+ * yüklenir ya da ayın fotoğraflarından seçilir. Metin ay notuyla aynı
  * kurallarla çizilir: "-" maddeler, bağlantılar, sosyal hesap kartları.
  */
-function Haberler({ b, acik, yenile }) {
+const haberGorseli = (h, fotolar) => {
+  if (h.gorsel) return `api/bulten/yazi/${h.id}/gorsel?v=${h.gorsel}`;
+  const foto = h.fotoId && fotolar.find(f => f.id === h.fotoId);
+  return foto ? `api/bulten/foto/${foto.id}?v=${foto.boyut}` : null;
+};
+
+function Haberler({ b, yenile }) {
   const [duzenlenen, setDuzenlenen] = useState(null);
-  const gorseller = b.fotolar.filter(f => f.tur.startsWith('image/'));
   const yap = async (istek, mesaj = 'genel.kaydedildi') => {
     try { await istek(); bildir(t(mesaj)); yenile(); } catch (err) { bildir(err.message, 'hata'); }
   };
@@ -527,30 +534,34 @@ function Haberler({ b, acik, yenile }) {
           <span className="bulten-ust">{t('bulten.yazilarUst')}</span>
           <h2 id="bulten-yazilar">{t('bulten.yazilar')}</h2>
         </div>
-        {acik && <button type="button" className="dugme dugme-ikincil dugme-kucuk" onClick={() => setDuzenlenen({})}>{t('bulten.yazi.ekle')}</button>}
+        {b.duzenleyebilir && (
+          <button type="button" className="dugme dugme-ikincil dugme-kucuk bulten-eylem-dugme" onClick={() => setDuzenlenen({})}>{t('bulten.yazi.ekle')}</button>
+        )}
       </header>
       {!b.yazilar.length && <p className="pano-bos">{t('bulten.yazilar.bos')}</p>}
       <div className="bulten-haberler">
         {b.yazilar.map((h, i) => {
-          const foto = h.fotoId && b.fotolar.find(f => f.id === h.fotoId);
+          const gorsel = haberGorseli(h, b.fotolar);
           return (
-            <article key={h.id} className={`bulten-haber${foto ? ' gorselli' : ''}`}>
-              {foto && <img src={`api/bulten/foto/${foto.id}?v=${foto.boyut}`} alt="" loading="lazy" />}
+            <article key={h.id} className={`bulten-haber${gorsel ? ' gorselli' : ''}`}>
+              {gorsel && <a href={gorsel} target="_blank" rel="noopener"><img src={gorsel} alt={h.baslik} loading="lazy" /></a>}
               <div className="bulten-haber-govde">
                 <h3>{h.baslik}</h3>
                 {h.metin && <div className="bulten-yazi"><NotMetni metin={h.metin} /></div>}
-                {acik && (
-                  <span className="bulten-duzen-satir">
-                    <button type="button" className="bulten-duzen-dugme" onClick={() => setDuzenlenen(h)}>{t('bulten.yazi.duzenle')}</button>
-                    <button type="button" className="bulten-duzen-dugme" disabled={i === 0} aria-label={t('bulten.duzen.yukari')}
-                      onClick={() => yap(() => iste(`api/bulten/yazi/${h.id}`, { method: 'PUT', body: JSON.stringify({ tasi: -1 }) }))}>↑</button>
-                    <button type="button" className="bulten-duzen-dugme" disabled={i === b.yazilar.length - 1} aria-label={t('bulten.duzen.asagi')}
-                      onClick={() => yap(() => iste(`api/bulten/yazi/${h.id}`, { method: 'PUT', body: JSON.stringify({ tasi: 1 }) }))}>↓</button>
+                {b.duzenleyebilir && (
+                  <span className="bulten-duzen-satir bulten-haber-eylem">
+                    <button type="button" className="bulten-duzen-dugme" onClick={() => setDuzenlenen(h)}>✎ {t('bulten.yazi.duzenle')}</button>
+                    {b.yazilar.length > 1 && <>
+                      <button type="button" className="bulten-duzen-dugme" disabled={i === 0} aria-label={t('bulten.duzen.yukari')} title={t('bulten.duzen.yukari')}
+                        onClick={() => yap(() => iste(`api/bulten/yazi/${h.id}`, { method: 'PUT', body: JSON.stringify({ tasi: -1 }) }))}>↑</button>
+                      <button type="button" className="bulten-duzen-dugme" disabled={i === b.yazilar.length - 1} aria-label={t('bulten.duzen.asagi')} title={t('bulten.duzen.asagi')}
+                        onClick={() => yap(() => iste(`api/bulten/yazi/${h.id}`, { method: 'PUT', body: JSON.stringify({ tasi: 1 }) }))}>↓</button>
+                    </>}
                     <button type="button" className="bulten-duzen-dugme bulten-duzen-sil" onClick={async () => {
                       if (await onayla(t('bulten.yazi.silSor'), { evet: t('genel.sil'), tehlike: true })) {
                         yap(() => iste(`api/bulten/yazi/${h.id}`, { method: 'DELETE' }), 'genel.silindi');
                       }
-                    }}>{t('genel.sil')}</button>
+                    }}>× {t('genel.sil')}</button>
                   </span>
                 )}
               </div>
@@ -558,45 +569,91 @@ function Haberler({ b, acik, yenile }) {
           );
         })}
       </div>
-      <Kutu acik={!!duzenlenen} onKapat={() => setDuzenlenen(null)} koru id="bulten-yazi-kutu">
-        {duzenlenen && (
-          <form className="kutu-ic" onSubmit={async o => {
-            o.preventDefault();
-            const f = o.currentTarget;
-            const govde = JSON.stringify({ baslik: f.baslik.value, metin: f.metin.value, fotoId: f.fotoId.value || null });
-            try {
-              if (duzenlenen.id) await iste(`api/bulten/yazi/${duzenlenen.id}`, { method: 'PUT', body: govde });
-              else await iste(`api/bulten/${b.ay}/yazi`, { method: 'POST', body: govde });
-              setDuzenlenen(null);
-              bildir(t('genel.kaydedildi'));
-              yenile();
-            } catch (err) { bildir(err.message, 'hata'); }
-          }}>
-            <div className="kutu-ust">
-              <h2>{t(duzenlenen.id ? 'bulten.yazi.duzenle' : 'bulten.yazi.ekle')}</h2>
-              <button type="button" className="kapat" data-kapat aria-label={t('genel.kapat')}>×</button>
-            </div>
-            <div className="form-izgara">
-              <label className="alan form-tam"><span>{t('bulten.yazi.baslik')}</span>
-                <input name="baslik" required maxLength={200} defaultValue={duzenlenen.baslik || ''} /></label>
-              <label className="alan form-tam"><span>{t('bulten.yazi.metin')}</span>
-                <textarea name="metin" rows={8} maxLength={8000} defaultValue={duzenlenen.metin || ''} /></label>
-              <p className="form-tam alan-ipucu">{t('bulten.notIpucu')}</p>
-              <label className="alan form-tam"><span>{t('bulten.yazi.gorsel')}</span>
-                <select name="fotoId" defaultValue={duzenlenen.fotoId || ''}>
-                  <option value="">{t('bulten.yazi.gorselYok')}</option>
-                  {gorseller.map(g => <option key={g.id} value={g.id}>{(g.aciklama || '').split('\n')[0] || g.ad}</option>)}
-                </select></label>
-              {!gorseller.length && <p className="form-tam alan-ipucu">{t('bulten.yazi.gorselIpucu')}</p>}
-            </div>
-            <div className="kutu-eylem">
-              <button type="submit" className="dugme dugme-birincil">{t('genel.kaydet')}</button>
-              <button type="button" className="dugme dugme-ikincil" data-kapat>{t('genel.vazgec')}</button>
-            </div>
-          </form>
-        )}
-      </Kutu>
+      {b.duzenleyebilir && (
+        <Kutu acik={!!duzenlenen} onKapat={() => setDuzenlenen(null)} koru id="bulten-yazi-kutu">
+          {duzenlenen && <HaberFormu h={duzenlenen} b={b} kapat={() => setDuzenlenen(null)} yenile={yenile} />}
+        </Kutu>
+      )}
     </section>
+  );
+}
+
+function HaberFormu({ h, b, kapat, yenile }) {
+  const galeri = b.fotolar.filter(f => f.tur.startsWith('image/'));
+  /* Görsel: 'yok' | 'mevcut' (haberin kendi görseli) | 'dosya' (yeni yükleme) | foto kimliği (galeriden). */
+  const [secim, setSecim] = useState(h.gorsel ? 'mevcut' : h.fotoId ? String(h.fotoId) : 'yok');
+  const [dosya, setDosya] = useState(null);
+  const [onizleme, setOnizleme] = useState(null);
+  const [hata, setHata] = useState('');
+  const [bekliyor, setBekliyor] = useState(false);
+  useEffect(() => {
+    if (!dosya) { setOnizleme(null); return undefined; }
+    const adres = URL.createObjectURL(dosya);
+    setOnizleme(adres);
+    return () => URL.revokeObjectURL(adres);
+  }, [dosya]);
+
+  const gosterilen = secim === 'dosya' ? onizleme
+    : secim === 'mevcut' ? haberGorseli({ ...h, fotoId: null }, b.fotolar)
+    : /^\d+$/.test(secim) ? `api/bulten/foto/${secim}` : null;
+
+  return (
+    <form className="kutu-ic" onSubmit={async o => {
+      o.preventDefault();
+      const f = o.currentTarget;
+      if (secim === 'dosya' && !dosya) { setHata(t('bulten.yazi.dosyaSec')); return; }
+      setHata('');
+      setBekliyor(true);
+      try {
+        const govde = JSON.stringify({ baslik: f.baslik.value, metin: f.metin.value, fotoId: /^\d+$/.test(secim) ? Number(secim) : null });
+        let id = h.id;
+        if (id) await iste(`api/bulten/yazi/${id}`, { method: 'PUT', body: govde });
+        else id = (await iste(`api/bulten/${b.ay}/yazi`, { method: 'POST', body: govde })).id;
+        if (secim === 'dosya') {
+          const yanit = await fetch(`api/bulten/yazi/${id}/gorsel`, { method: 'PUT', body: dosya });
+          if (!yanit.ok) throw new Error(hataMetni(await yanit.json().catch(() => ({}))));
+        } else if (h.gorsel && secim !== 'mevcut') {
+          await iste(`api/bulten/yazi/${id}/gorsel`, { method: 'DELETE' });
+        }
+        kapat();
+        bildir(t('genel.kaydedildi'));
+        yenile();
+      } catch (err) { setHata(err.message); if (!h.id) yenile(); } finally { setBekliyor(false); }
+    }}>
+      <div className="kutu-ust">
+        <h2>{t(h.id ? 'bulten.yazi.duzenleBaslik' : 'bulten.yazi.ekle')}</h2>
+        <button type="button" className="kapat" data-kapat aria-label={t('genel.kapat')}>×</button>
+      </div>
+      <p className="kutu-aciklama">{ayAdi(b.ay)}</p>
+      <div className="form-izgara">
+        <label className="alan form-tam"><span>{t('bulten.yazi.baslik')}</span>
+          <input name="baslik" required maxLength={200} defaultValue={h.baslik || ''} /></label>
+        <label className="alan form-tam"><span>{t('bulten.yazi.metin')}</span>
+          <textarea name="metin" rows={8} maxLength={8000} defaultValue={h.metin || ''} /></label>
+        <p className="form-tam alan-ipucu">{t('bulten.yazi.ipucu')}</p>
+        <label className="alan form-tam"><span>{t('bulten.yazi.gorsel')}</span>
+          <select value={secim} onChange={o => setSecim(o.target.value)}>
+            <option value="yok">{t('bulten.yazi.gorselYok')}</option>
+            {h.gorsel && <option value="mevcut">{t('bulten.yazi.gorselMevcut')}</option>}
+            <option value="dosya">{t('bulten.yazi.gorselYukle')}</option>
+            {galeri.length > 0 && (
+              <optgroup label={t('bulten.yazi.gorselGaleri')}>
+                {galeri.map(g => <option key={g.id} value={String(g.id)}>{(g.aciklama || '').split('\n')[0] || g.ad}</option>)}
+              </optgroup>
+            )}
+          </select></label>
+        {secim === 'dosya' && (
+          <label className="alan form-tam"><span>{t('bulten.yazi.dosya')}</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={o => setDosya(o.target.files[0] || null)} /></label>
+        )}
+        {gosterilen && <img className="form-tam bulten-haber-onizleme" src={gosterilen} alt="" />}
+      </div>
+      <p className="hata" role="alert">{hata}</p>
+      <div className="kutu-eylem">
+        <button type="submit" className="dugme dugme-birincil" disabled={bekliyor}>{t('genel.kaydet')}</button>
+        <button type="button" className="dugme dugme-ikincil" data-kapat>{t('genel.vazgec')}</button>
+      </div>
+    </form>
   );
 }
 

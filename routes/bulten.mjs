@@ -14,6 +14,7 @@ import { CIKTILAR } from '../lib/cikti.mjs';
  *   PUT /api/bulten/2026-10/ayar  düzen: { gizli, sira, gizliMadde, manset }
  *   POST /api/bulten/2026-10/yazi        haber: { baslik, metin, fotoId }
  *   PUT|DELETE /api/bulten/yazi/:id      haberi değiştir ({ tasi: -1|1 } sırayı değiştirir) / sil
+ *   GET|PUT|DELETE /api/bulten/yazi/:id/gorsel   haberin kendi görseli (PUT: ham gövde)
  *
  * Listeler TÜRETİLİR (panodaki gibi): görev tamamlanınca, dosya yüklenince,
  * faaliyet "tamamlandı" yapılınca bülten kendiliğinden dolar. Elle yazılan
@@ -212,6 +213,32 @@ export function bultenRoutes({ db }) {
         [ay, baslik, metin, fotoId, Number(son?.s ?? -1) + 1, user.id, simdi, simdi]);
       return send(res, 201, { id: Number(id) });
     }
+    /* Haberin kendi görseli: okuma herkese açık (server.mjs · acikOkuma). */
+    if (parca[0] === 'yazi' && parca.length === 3 && parca[2] === 'gorsel') {
+      const id = Number(parca[1]) || 0;
+      if (okuma) {
+        const g = await db.get('SELECT gorsel_tur,gorsel_veri FROM bulten_yazi WHERE id=? AND gorsel_boyut>0', [id]);
+        if (!g) return send(res, 404, { error: 'bulten.hata.yazi' });
+        const veri = Buffer.isBuffer(g.gorsel_veri) ? g.gorsel_veri : Buffer.from(g.gorsel_veri);
+        res.writeHead(200, { 'Content-Type': g.gorsel_tur, 'Content-Length': veri.length, 'Cache-Control': 'public, max-age=31536000, immutable' });
+        res.end(req.method === 'HEAD' ? undefined : veri);
+        return true;
+      }
+      if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
+      if (!await db.get('SELECT id FROM bulten_yazi WHERE id=?', [id])) return send(res, 404, { error: 'bulten.hata.yazi' });
+      if (req.method === 'DELETE') {
+        await db.run("UPDATE bulten_yazi SET gorsel_tur='',gorsel_veri=NULL,gorsel_boyut=0 WHERE id=?", [id]);
+        return send(res, 200, { ok: true });
+      }
+      if (req.method !== 'PUT') return send(res, 405, { error: 'genel.hata' });
+      const veri = await rawBody(req, MAX_PHOTO_BYTES);
+      const tur = veri.length ? sniffPhoto(veri) : null;
+      if (!tur || !PHOTO_TYPES[tur]) throw new ValidationError('bulten.hata.fotoTur');
+      /* Görsel yüklenince galeriden seçilen görsel bırakılır. */
+      await db.run('UPDATE bulten_yazi SET gorsel_tur=?,gorsel_veri=?,gorsel_boyut=?,foto_id=NULL,updated=? WHERE id=?',
+        [tur, veri, veri.length, new Date().toISOString(), id]);
+      return send(res, 200, { ok: true });
+    }
     if (parca[0] === 'yazi' && parca.length === 2 && ['PUT', 'DELETE'].includes(req.method)) {
       if (!user?.koordinator) return send(res, 403, { error: 'bulten.hata.yetki' });
       const yazi = await db.get('SELECT id,ay FROM bulten_yazi WHERE id=?', [Number(parca[1]) || 0]);
@@ -336,8 +363,10 @@ export function bultenRoutes({ db }) {
     const ayarSatir = await db.get('SELECT ayar FROM bulten_ayar WHERE ay=?', [ay]);
     let ayar;
     try { ayar = ayarDogrula(ayarSatir ? JSON.parse(ayarSatir.ayar) : {}); } catch { ayar = ayarDogrula({}); }
-    const yazilar = (await db.all('SELECT id,baslik,metin,foto_id,sira FROM bulten_yazi WHERE ay=? ORDER BY sira, id', [ay]))
-      .map(y => ({ id: Number(y.id), baslik: y.baslik, metin: y.metin, fotoId: y.foto_id == null ? null : Number(y.foto_id) }));
+    const yazilar = (await db.all('SELECT id,baslik,metin,foto_id,sira,gorsel_boyut,updated FROM bulten_yazi WHERE ay=? ORDER BY sira, id', [ay]))
+      .map(y => ({ id: Number(y.id), baslik: y.baslik, metin: y.metin, fotoId: y.foto_id == null ? null : Number(y.foto_id),
+        /* Kendi görseli varsa sürüm anahtarı (önbellek için), yoksa null. */
+        gorsel: Number(y.gorsel_boyut) > 0 ? `${Number(y.gorsel_boyut)}-${Date.parse(y.updated) || 0}` : null }));
     const not = await db.get('SELECT n.yapilanlar,n.yapilacaklar,n.updated,u.ad,u.username FROM bulten_not n LEFT JOIN users u ON u.id=n.yazan WHERE n.ay=?', [ay]);
 
     /* Oturumsuz okuyan: kişi adları ve klasör dosya adları çıkarılır. */
